@@ -1,0 +1,9 @@
+API_Name,Context,Endpoint
+RandomUserAPI,randomuser,https://randomuser.me/api/
+CatFactsAPI,catfacts,https://catfact.ninja/fact
+JSONPlaceholderAPI,jsonplaceholder,https://jsonplaceholder.typicode.com/
+BoredAPI,boredapi,https://www.boredapi.com/api/activity
+ChuckNorrisJokesAPI,getrandomjokes,https://api.chucknorris.io/jokes/random
+AdviceSlipAPI,getrandomlifeadvice,https://api.adviceslip.com/advice
+NumbersAPI,numbersapi,http://numbersapi.com/random/
+IPifyAPI,GetyourpublicIPaddress,https://api.ipify.org?format=json

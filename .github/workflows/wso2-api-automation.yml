@@ -1,0 +1,169 @@
+name: WSO2 APIM 3.2.0 Dummy Data Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: 'WSO2 APIM Host'
+        required: true
+        default: 'localhost'
+      admin_username:
+        description: 'Admin Username'
+        required: true
+        default: 'admin'
+      admin_password:
+        description: 'Admin Password'
+        required: true
+        default: 'admin'
+      num_apps:
+        description: 'Number of Test Applications'
+        required: true
+        default: '15'
+      mysql_root_password:
+        description: 'MySQL Root Password'
+        required: false
+        default: 'root'
+      mysql_version:
+        description: 'MySQL Version'
+        required: false
+        default: '5.8'
+      subscription:
+        description: 'WSO2 APIM Subscriber?'
+        required: false
+        default: false
+        type: boolean  # Boolean input type
+      U2_lvl:
+        description: 'U2 Update Level'
+        type: number
+        required: false
+
+jobs:
+  setup-wso2-environment:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Common Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl jq
+
+    - name: Setup MySQL (if localhost)
+      if: github.event.inputs.host == 'localhost'
+      run: |
+        # Install MySQL
+        sudo apt-get install -y mysql-server-${{ github.event.inputs.mysql_version }}
+        sudo systemctl start mysql.service
+        
+        # Set root password
+        sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${{ github.event.inputs.mysql_root_password }}';"
+        
+        # Create WSO2 databases and user
+        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} << EOF
+        CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
+        CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
+        
+        CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
+        GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
+        GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
+        FLUSH PRIVILEGES;
+        EOF
+        
+        # Verify MySQL Setup
+        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SHOW DATABASES;"
+        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SELECT User FROM mysql.user;"
+    
+    - name: Get APIM Pack (if localhost)
+      if: github.event.inputs.host == 'localhost'
+      run: |
+        # Download WSO2 API Manager
+        wget https://github.com/wso2/product-apim/releases/download/v3.2.0/wso2am-3.2.0.zip
+        
+        # Extract the package
+        unzip wso2am-3.2.0.zip
+
+    - name: update APIM pack using U2(if subscription available)
+      if: ${{ github.event.inputs.subscription == 'true' }} 
+      run: |
+        # Update WSO2 API Manager using U2 tool (Only for subscribers)
+        export WSO2_UPDATES_SKIP_CONFLICTS="true"
+        echo "=========== Updating the U2 Update tool ==========="
+        ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
+        
+        if [[ -n "${{ github.event.inputs.U2_lvl }}" ]]; then
+            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} -l ${{ github.event.inputs.U2_lvl }} || [[ $? -eq 2 ]]
+        else
+            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
+        fi
+
+    - name: Start up the Server
+      run: |
+        # Start WSO2 API Manager in background
+        cd wso2am-3.2.0/bin
+        ./api-manager.sh start
+        
+        # Wait for server to start (typically takes a few minutes)
+        echo "Waiting for WSO2 API Manager to start..."
+        while ! curl -k -s -f https://localhost:9443/carbon > /dev/null; do
+          sleep 10
+        done
+        echo "WSO2 API Manager is running"
+        cd ../..
+
+    - name: Create config.env
+      run: |
+        cat > config.env << EOF
+        ADMIN_USERNAME="${{ github.event.inputs.admin_username }}"
+        ADMIN_PASSWORD="${{ github.event.inputs.admin_password }}"
+        HOST="${{ github.event.inputs.host }}"
+        SERVLET_PORT="9443"
+        GATEWAY_PORT="8243"
+        BASIC_AUTH=\$(printf "%s" "\$ADMIN_USERNAME:\$ADMIN_PASSWORD" | base64)
+        PUBLISHER_SCOPE="apim:api_create apim:api_view apim:api_publish apim:api_import_export"
+        SUBSCRIBER_SCOPE="apim:subscribe apim:api_key apim:app_manage apim:sub_manage apim:store_settings apim:sub_alert_manage apim:app_import_export"
+        NUM_APPS="${{ github.event.inputs.num_apps }}"
+        KEY_MANAGER_ID="Resident Key Manager"
+        EOF
+
+    - name: Make scripts executable
+      run: |
+        chmod +x api_creator.sh
+        chmod +x api_publisher.sh
+        chmod +x devportal_app_creator.sh
+        chmod +x app_keys_gen.sh
+        chmod +x subscribe_APIs.sh
+
+    - name: Create APIs
+      run: |
+        ./api_creator.sh
+      continue-on-error: false
+
+    - name: Publish APIs
+      run: |
+        ./api_publisher.sh
+      continue-on-error: false
+
+    - name: Create DevPortal Applications
+      run: |
+        ./devportal_app_creator.sh
+      continue-on-error: false
+
+    - name: Generate Application Keys
+      run: |
+        ./app_keys_gen.sh
+      continue-on-error: false
+
+    - name: Subscribe Applications to APIs
+      run: |
+        ./subscribe_APIs.sh
+      continue-on-error: false
+
+    - name: Archive Configuration
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: wso2-config
+        path: |
+          config.env
+          apis.csv 
