@@ -66,6 +66,15 @@ jobs:
         
         # Extract the package
         unzip ${{ env.PRODUCT_PACK_NAME }}.zip
+    
+    - name: Get DB connector
+      run: |
+        # Download MYSQL Connector
+        wget https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-8.0.32.zip
+
+         # Extract the package
+        unzip mysql-connector-j-8.0.32.zip
+        
 
     - name: update APIM pack using U2(if subscription available)
       if: ${{ github.event.inputs.subscription == 'true' }} 
@@ -112,6 +121,9 @@ jobs:
 
     - name: Change the DB config
       run: |
+        # adding the DB connector
+        cp ./mysql-connector-j-8.0.32/mysql-connector-j-8.0.32.jar ./${{ env.PRODUCT_PACK_NAME }}/repository/components/lib/
+        
         # Backup deployment.toml
         cp ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml.bak
         echo "Backup created: deployment.toml.bak"
@@ -134,6 +146,7 @@ jobs:
         EOF
 
         echo "deployment.toml updated successfully!"
+
     - name: "Verify deployment.toml Update"
       run: cat ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
        
