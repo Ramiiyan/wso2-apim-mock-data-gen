@@ -19,10 +19,10 @@ on:
         description: 'Number of Test Applications'
         required: true
         default: '15'
-      mysql_root_password:
-        description: 'MySQL Root Password'
-        required: false
-        default: 'root'
+      # mysql_root_password:
+      #   description: 'MySQL Root Password'
+      #   required: false
+      #   default: 'root'
       # mysql_version:
       #   description: 'MySQL Version'
       #   required: false
@@ -98,10 +98,10 @@ jobs:
         sudo systemctl start mysql.service
         
         # Set root password
-        sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${{ github.event.inputs.mysql_root_password }}';"
+        # sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${{ github.event.inputs.mysql_root_password }}';"
         
         # Create WSO2 databases and user
-        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} << EOF
+        mysql -uroot -proot << EOF
         CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
         CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
         
@@ -223,4 +223,4 @@ jobs:
     #     name: wso2-config
     #     path: |
     #       config.env
-    #       apis.csv
+    #       apis.csv 
