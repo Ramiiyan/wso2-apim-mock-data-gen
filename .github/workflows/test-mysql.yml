@@ -1,0 +1,82 @@
+name: WSO2 APIM 3.2.0 Dummy Data Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: 'WSO2 APIM Host'
+        required: true
+        default: 'localhost'
+      admin_username:
+        description: 'Admin Username'
+        required: true
+        default: 'admin'
+      admin_password:
+        description: 'Admin Password'
+        required: true
+        default: 'admin'
+      num_apps:
+        description: 'Number of Test Applications'
+        required: true
+        default: '15'
+      # mysql_root_password:
+      #   description: 'MySQL Root Password'
+      #   required: false
+      #   default: 'root'
+      # mysql_version:
+      #   description: 'MySQL Version'
+      #   required: false
+      #   default: '5.8'
+      subscription:
+        description: 'WSO2 APIM Subscriber?'
+        required: false
+        default: false
+        type: boolean  # Boolean input type
+      U2_lvl:
+        description: 'U2 Update Level'
+        type: number
+        required: false
+
+jobs:
+  setup-wso2-environment:
+    runs-on: ubuntu-latest
+    env:
+      PRODUCT_PACK_NAME : wso2am-3.2.0
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Common Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl jq
+    
+    - name: Setup MySQL (if localhost)
+      if: github.event.inputs.host == 'localhost'
+      run: |
+        # Install MySQL
+        sudo apt-get install -y mysql-server
+        sudo systemctl start mysql.service
+        mysql --version
+
+        # Set root password
+        # sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${{ github.event.inputs.mysql_root_password }}';"
+        
+        # Create WSO2 databases and user
+        mysql -uroot -proot << EOF
+        CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
+        CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
+        
+        CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
+        GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
+        GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
+        FLUSH PRIVILEGES;
+        EOF
+        
+        # Verify MySQL Setup
+        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SHOW DATABASES;"
+
+        # Run SQL scripts
+        echo "Running SQL scripts..."
+        mysql -u root -p$mysql_password WSO2AM_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/apimgt/mysql.sql
+        mysql -u root -p$mysql_password WSO2_SHARED_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/mysql.sql
