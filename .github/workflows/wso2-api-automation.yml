@@ -94,7 +94,7 @@ jobs:
       if: github.event.inputs.host == 'localhost'
       run: |
         # Install MySQL
-        sudo apt-get install -y mysql-server-apt
+        sudo apt-get install -y mysql-server
         sudo systemctl start mysql.service
         
         # Set root password
@@ -223,4 +223,4 @@ jobs:
     #     name: wso2-config
     #     path: |
     #       config.env
-    #       apis.csv 
+    #       apis.csv
