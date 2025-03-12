@@ -40,6 +40,8 @@ on:
 jobs:
   setup-wso2-environment:
     runs-on: ubuntu-latest
+    env:
+      PRODUCT_PACK_NAME : wso2am-3.2.0
     
     steps:
     - uses: actions/checkout@v2
@@ -48,6 +50,36 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y curl jq
+
+    # Use the setup-java action to configure the Java environment
+    - name: 'Set up JDK 17'
+      uses: actions/setup-java@v4
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+    
+    - name: Get APIM Pack (if localhost)
+      if: github.event.inputs.host == 'localhost'
+      run: |
+        # Download WSO2 API Manager
+        wget https://github.com/wso2/product-apim/releases/download/v3.2.0/wso2am-3.2.0.zip
+        
+        # Extract the package
+        unzip ${{ env.PRODUCT_PACK_NAME }}.zip
+
+    - name: update APIM pack using U2(if subscription available)
+      if: ${{ github.event.inputs.subscription == 'true' }} 
+      run: |
+        # Update WSO2 API Manager using U2 tool (Only for subscribers)
+        export WSO2_UPDATES_SKIP_CONFLICTS="true"
+        echo "=========== Updating the U2 Update tool ==========="
+        ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
+        
+        if [[ -n "${{ github.event.inputs.U2_lvl }}" ]]; then
+            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} -l ${{ github.event.inputs.U2_lvl }} || [[ $? -eq 2 ]]
+        else
+            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
+        fi
 
     - name: Setup MySQL (if localhost)
       if: github.event.inputs.host == 'localhost'
@@ -72,41 +104,48 @@ jobs:
         
         # Verify MySQL Setup
         mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SHOW DATABASES;"
-        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SELECT User FROM mysql.user;"
-    
-    - name: Get APIM Pack (if localhost)
-      if: github.event.inputs.host == 'localhost'
-      run: |
-        # Download WSO2 API Manager
-        wget https://github.com/wso2/product-apim/releases/download/v3.2.0/wso2am-3.2.0.zip
-        
-        # Extract the package
-        unzip wso2am-3.2.0.zip
 
-    - name: update APIM pack using U2(if subscription available)
-      if: ${{ github.event.inputs.subscription == 'true' }} 
-      run: |
-        # Update WSO2 API Manager using U2 tool (Only for subscribers)
-        export WSO2_UPDATES_SKIP_CONFLICTS="true"
-        echo "=========== Updating the U2 Update tool ==========="
-        ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
-        
-        if [[ -n "${{ github.event.inputs.U2_lvl }}" ]]; then
-            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} -l ${{ github.event.inputs.U2_lvl }} || [[ $? -eq 2 ]]
-        else
-            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
-        fi
+        # Run SQL scripts
+        echo "Running SQL scripts..."
+        mysql -u root -p$mysql_password WSO2AM_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/apimgt/mysql.sql
+        mysql -u root -p$mysql_password WSO2_SHARED_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/mysql.sql
 
+    - name: Change the DB config
+      run: |
+        # Backup deployment.toml
+        cp ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml.bak
+        echo "Backup created: deployment.toml.bak"
+
+        # Update deployment.toml with MySQL configuration
+        cat << EOF > ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
+        [database.apim_db]
+        type = "mysql"
+        url = "jdbc:mysql://localhost:3306/WSO2AM_DB?useSSL=false"
+        username = "root"
+        password = "${{ github.event.inputs.mysql_root_password }}"
+        driver = "com.mysql.cj.jdbc.Driver"
+
+        [database.shared_db]
+        type = "mysql"
+        url = "jdbc:mysql://localhost:3306/WSO2_SHARED_DB?useSSL=false"
+        username = "root"
+        password = "${{ github.event.inputs.mysql_root_password }}"
+        driver = "com.mysql.cj.jdbc.Driver"
+        EOF
+
+        echo "deployment.toml updated successfully!"
+    - name: "Verify deployment.toml Update"
+      run: cat ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
+       
     - name: Start up the Server
       run: |
         # Start WSO2 API Manager in background
-        cd wso2am-3.2.0/bin
-        ./api-manager.sh start
+        ./${{ env.PRODUCT_PACK_NAME }}/api-manager.sh start
         
         # Wait for server to start (typically takes a few minutes)
         echo "Waiting for WSO2 API Manager to start..."
         while ! curl -k -s -f https://localhost:9443/carbon > /dev/null; do
-          sleep 10
+          sleep 50
         done
         echo "WSO2 API Manager is running"
         cd ../..
@@ -159,11 +198,15 @@ jobs:
         ./subscribe_APIs.sh
       continue-on-error: false
 
-    - name: Archive Configuration
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: wso2-config
-        path: |
-          config.env
-          apis.csv 
+    - name: List APIs(Test Run)
+      run: |
+        curl -k "https://localhost:9443/api/am/store/v1/apis"
+
+    # - name: Archive Configuration
+    #   if: always()
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: wso2-config
+    #     path: |
+    #       config.env
+    #       apis.csv 
