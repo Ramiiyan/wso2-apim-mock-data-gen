@@ -23,10 +23,10 @@ on:
         description: 'MySQL Root Password'
         required: false
         default: 'root'
-      mysql_version:
-        description: 'MySQL Version'
-        required: false
-        default: '5.8'
+      # mysql_version:
+      #   description: 'MySQL Version'
+      #   required: false
+      #   default: '5.8'
       subscription:
         description: 'WSO2 APIM Subscriber?'
         required: false
@@ -94,7 +94,7 @@ jobs:
       if: github.event.inputs.host == 'localhost'
       run: |
         # Install MySQL
-        sudo apt-get install -y mysql-server-${{ github.event.inputs.mysql_version }}
+        sudo apt-get install -y mysql-server-apt
         sudo systemctl start mysql.service
         
         # Set root password
@@ -119,7 +119,8 @@ jobs:
         mysql -u root -p$mysql_password WSO2AM_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/apimgt/mysql.sql
         mysql -u root -p$mysql_password WSO2_SHARED_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/mysql.sql
 
-    - name: Change the DB config
+    - name: Change the DB config (if localhost)
+      if: github.event.inputs.host == 'localhost'
       run: |
         # adding the DB connector
         cp ./mysql-connector-j-8.0.32/mysql-connector-j-8.0.32.jar ./${{ env.PRODUCT_PACK_NAME }}/repository/components/lib/
@@ -146,11 +147,11 @@ jobs:
         EOF
 
         echo "deployment.toml updated successfully!"
-
-    - name: "Verify deployment.toml Update"
-      run: cat ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
+        # Verify deployment.toml Update
+        cat ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
        
-    - name: Start up the Server
+    - name: Start up the Server(if localhost)
+      if: github.event.inputs.host == 'localhost'
       run: |
         # Start WSO2 API Manager in background
         ./${{ env.PRODUCT_PACK_NAME }}/api-manager.sh start
@@ -213,7 +214,7 @@ jobs:
 
     - name: List APIs(Test Run)
       run: |
-        curl -k "https://localhost:9443/api/am/store/v1/apis"
+        curl -k "https://${{ github.event.inputs.host }}:9443/api/am/store/v1/apis"
 
     # - name: Archive Configuration
     #   if: always()
