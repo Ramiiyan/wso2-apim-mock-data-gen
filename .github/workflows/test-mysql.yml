@@ -27,13 +27,6 @@ jobs:
         mysql --version
       continue-on-error: true
 
-    - name: Test MySQL2
-      run: |
-
-        mysql --version
-        mysql -u root -p -e "SHOW DATABASES;"
-      continue-on-error: true
-
     - name: Test MySQL3
       run: |
         mysql --version
@@ -58,7 +51,7 @@ jobs:
     - name: Test MySQL6
       run: |
         mysql --version
-        mysql -u root --password=rootpassword -e "SHOW DATABASES;"
+        mysql -u root --password=root1 -e "SHOW DATABASES;"
       continue-on-error: true
         # sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
         # sudo mysql -e "FLUSH PRIVILEGES;"
