@@ -58,4 +58,4 @@ jobs:
         EOF
         
         # Verify MySQL Setup
-        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SHOW DATABASES;"
+        mysql -uroot -proot -e "SHOW DATABASES;"
