@@ -40,38 +40,22 @@ jobs:
         sudo mysql -u root -proot -e "FLUSH PRIVILEGES;"
       continue-on-error: true
 
-    - name: Test MySQL5
-      run: |
-        sudo mysql --version
-        sudo mysql -u root -proot -e "SHOW DATABASES;"
-        sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
-        sudo mysql -e "FLUSH PRIVILEGES;"
-      continue-on-error: true
-
     - name: Test MySQL6
       run: |
         mysql --version
-        mysql -u root --password=root1 -e "SHOW DATABASES;"
-      continue-on-error: true
-        # sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
-        # sudo mysql -e "FLUSH PRIVILEGES;"
-
-        # mysql -u root -prootpassword -e "SHOW DATABASES;"
-
-        # # Set root password
-        # # sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${{ github.event.inputs.mysql_root_password }}';"
+        mysql -u root --password=root -e "SHOW DATABASES;"
+    
         
-        # # Create WSO2 databases and user
-        # sudo mysql -uroot --password=root << EOF
-        # CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
-        # CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
+        # Create WSO2 databases and user
+        sudo mysql -uroot --password=root << EOF
+        CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
+        CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
         
-        # CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
-        # GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
-        # GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
-        # FLUSH PRIVILEGES;
-        # EOF
+        CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
+        GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
+        GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
+        FLUSH PRIVILEGES;
+        EOF
         
-        # # Verify MySQL Setup
-        # mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SHOW DATABASES;"
-
+        # Verify MySQL Setup
+        mysql -uroot -p${{ github.event.inputs.mysql_root_password }} -e "SHOW DATABASES;"
