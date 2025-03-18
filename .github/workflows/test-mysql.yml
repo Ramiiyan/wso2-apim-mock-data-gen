@@ -50,12 +50,12 @@ jobs:
         sudo mysql -uroot --password=root << EOF
         CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
         CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
-        
-        CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
-        GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
-        GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
-        FLUSH PRIVILEGES;
         EOF
+        # CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
+        # GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
+        # GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
+        # FLUSH PRIVILEGES;
+        # EOF
         
         # Verify MySQL Setup
         mysql -uroot -proot -e "SHOW DATABASES;"
