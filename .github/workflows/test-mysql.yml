@@ -38,7 +38,12 @@ jobs:
       run: |
         sudo /etc/init.d/mysql start
         mysql -e 'CREATE DATABASE test_db;' -uroot -proot
-    
+        mysql -u root -p=root -e "SHOW DATABASES;"
+        mysql -uroot --password=root << EOF
+        CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
+        CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
+        EOF
+      continue-on-error: true
 
     - name: Test MySQL4
       run: |
