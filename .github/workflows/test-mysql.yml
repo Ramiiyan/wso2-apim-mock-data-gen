@@ -31,7 +31,7 @@ jobs:
     - name: Test MySQL3
       run: |
         mysql --version
-        mysql -user=root -h127.0.0.1 --password=root -e "SHOW DATABASES;"
+        mysql -user=root --password=root -e "SHOW DATABASES;"
       continue-on-error: true
 
     - name: Test MySQL4
