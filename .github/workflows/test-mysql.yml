@@ -41,6 +41,7 @@ jobs:
         mysql -uroot -proot << EOF
         CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
         CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
+        CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
         EOF
         mysql -uroot -proot -e "SHOW DATABASES;"
       continue-on-error: true
