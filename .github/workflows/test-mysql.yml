@@ -41,6 +41,13 @@ jobs:
         sudo mysql -u root -proot -e "FLUSH PRIVILEGES;"
       continue-on-error: true
 
+    - name: Create MySQL User
+      run: |
+        sudo mysql -e "CREATE USER 'github'@'localhost' IDENTIFIED BY 'githubpass';"
+        sudo mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'github'@'localhost' WITH GRANT OPTION;"
+        sudo mysql -e "FLUSH PRIVILEGES;"
+      continue-on-error: true
+
     - name: Test MySQL6
       run: |
         mysql --version
