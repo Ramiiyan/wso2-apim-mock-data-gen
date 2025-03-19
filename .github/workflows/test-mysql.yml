@@ -45,7 +45,7 @@ jobs:
       continue-on-error: true
     
     - name: Check MySQL User Authentication
-      run: sudo mysql -e "SELECT user, host, plugin FROM mysql.user;"
+      run: sudo mysql -u root -proot -e "SELECT user, host, plugin FROM mysql.user;"
       continue-on-error: true
 
     - name: Create MySQL User
