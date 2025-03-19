@@ -43,9 +43,9 @@ jobs:
 
     - name: Create MySQL User
       run: |
-        sudo mysql -e "CREATE USER 'github'@'localhost' IDENTIFIED BY 'githubpass';"
-        sudo mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'github'@'localhost' WITH GRANT OPTION;"
-        sudo mysql -e "FLUSH PRIVILEGES;"
+        sudo mysql -u root -e "CREATE USER 'github'@'localhost' IDENTIFIED BY 'githubpass';"
+        sudo mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'github'@'localhost' WITH GRANT OPTION;"
+        sudo mysql -u root -e "FLUSH PRIVILEGES;"
       continue-on-error: true
 
     - name: Test MySQL6
