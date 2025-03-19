@@ -28,12 +28,6 @@ jobs:
         mysql --version
       continue-on-error: true
 
-    - name: Test MySQL3
-      run: |
-        mysql --version
-        mysql -user=root --password=root -e "SHOW DATABASES;"
-      continue-on-error: true
-
     - name: Set up MySQL
       run: |
         sudo /etc/init.d/mysql start
