@@ -42,6 +42,9 @@ jobs:
       continue-on-error: true
     - name: Check MySQL Access
       run: sudo mysql -e "SHOW DATABASES;"
+    
+    - name: Check MySQL User Authentication
+      run: sudo mysql -e "SELECT user, host, plugin FROM mysql.user;"
 
     - name: Create MySQL User
       run: |
