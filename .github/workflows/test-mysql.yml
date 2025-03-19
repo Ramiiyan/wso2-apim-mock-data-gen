@@ -37,15 +37,15 @@ jobs:
     - name: Test MySQL4
       run: |
         sudo mysql --version
-        sudo mysql -u root -proot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
-        sudo mysql -u root -proot -e "FLUSH PRIVILEGES;"
+        sudo mysql -u root --password=root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
+        sudo mysql -u root --password=root -e "FLUSH PRIVILEGES;"
       continue-on-error: true
     - name: Check MySQL Access
-      run: sudo mysql -e "SHOW DATABASES;"
+      run: sudo mysql -u root --password=root -e "SHOW DATABASES;"
       continue-on-error: true
     
     - name: Check MySQL User Authentication
-      run: sudo mysql -u root -proot -e "SELECT user, host, plugin FROM mysql.user;"
+      run: sudo mysql -u root --password=root -e "SELECT user, host, plugin FROM mysql.user;"
       continue-on-error: true
 
     - name: Create MySQL User
