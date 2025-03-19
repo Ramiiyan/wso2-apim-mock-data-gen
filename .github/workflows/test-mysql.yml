@@ -34,6 +34,12 @@ jobs:
         mysql -user=root --password=root -e "SHOW DATABASES;"
       continue-on-error: true
 
+    - name: Set up MySQL
+      run: |
+        sudo /etc/init.d/mysql start
+        mysql -e 'CREATE DATABASE test_db;' -uroot -proot
+    
+
     - name: Test MySQL4
       run: |
         sudo mysql --version
