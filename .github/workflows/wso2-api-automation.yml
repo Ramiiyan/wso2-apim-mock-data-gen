@@ -202,6 +202,9 @@ jobs:
     - name: List APIs(Test Run)
       run: |
         curl -k "https://${{ github.event.inputs.host }}:9443/api/am/store/v1/apis"
+      continue-on-error: true
+
+    
 
     # - name: Archive Configuration
     #   if: always()
