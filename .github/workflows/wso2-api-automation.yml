@@ -131,40 +131,22 @@ jobs:
         cp ./mysql-connector-j-8.0.32/mysql-connector-j-8.0.32.jar ./${{ env.PRODUCT_PACK_NAME }}/repository/components/lib/
         
         # Backup deployment.toml
-        cp ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml.bak
+        mv ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml.bak
         echo "Backup created: deployment.toml.bak"
 
-        # Update deployment.toml with MySQL configuration
-        cat << EOF > ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
-        [database.apim_db]
-        type = "mysql"
-        url = "jdbc:mysql://localhost:3306/WSO2_APIM_DB?useSSL=false"
-        username = "wso2carbon"
-        password = "wso2carbon"
-        driver = "com.mysql.cj.jdbc.Driver"
-
-        [database.shared_db]
-        type = "mysql"
-        url = "jdbc:mysql://localhost:3306/WSO2_SHARED_DB?useSSL=false"
-        username = "wso2carbon"
-        password = "wso2carbon"
-        driver = "com.mysql.cj.jdbc.Driver"
-        EOF
-
-        echo "deployment.toml updated successfully!"
-        # Verify deployment.toml Update
-        cat ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
+        # Update deployment.toml with repo file.
+        cp ./deployment.toml ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/
        
     - name: Start up the Server(if localhost)
       if: github.event.inputs.host == 'localhost'
       run: |
         # Start WSO2 API Manager in background
-        ./${{ env.PRODUCT_PACK_NAME }}/api-manager.sh start
+        ./${{ env.PRODUCT_PACK_NAME }}/bin/api-manager.sh start
         
         # Wait for server to start (typically takes a few minutes)
         echo "Waiting for WSO2 API Manager to start..."
         while ! curl -k -s -f https://localhost:9443/carbon > /dev/null; do
-          sleep 50
+          sleep 60
         done
         echo "WSO2 API Manager is running"
         cd ../..
