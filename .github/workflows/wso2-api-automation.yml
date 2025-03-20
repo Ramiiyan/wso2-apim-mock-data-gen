@@ -141,7 +141,7 @@ jobs:
       if: github.event.inputs.host == 'localhost'
       run: |
         # Start WSO2 API Manager in background
-        ./${{ env.PRODUCT_PACK_NAME }}/bin/api-manager.sh start
+        ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2server.sh start
         
         # Wait for server to start (typically takes a few minutes)
         echo "Waiting for WSO2 API Manager to start..."
