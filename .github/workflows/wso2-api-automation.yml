@@ -204,13 +204,23 @@ jobs:
         curl -k "https://${{ github.event.inputs.host }}:9443/api/am/store/v1/apis"
       continue-on-error: true
 
+    - name: Create and Zip MySQL Database Dumps
+      run: |
+        # Create a backup folder
+        mkdir -p mysql_dumps
+        
+        # Dump each database into a separate file
+        mysqldump -u root -proot WSO2AM_DB > mysql_dumps/WSO2AM_DB.sql
+        mysqldump -u root -proot WSO2_SHARED_DB > mysql_dumps/WSO2_SHARED_DB.sql
     
-
-    # - name: Archive Configuration
-    #   if: always()
-    #   uses: actions/upload-artifact@v2
-    #   with:
-    #     name: wso2-config
-    #     path: |
-    #       config.env
-    #       apis.csv 
+        # Zip the dumps folder
+        zip -r mysql_dumps.zip mysql_dumps
+    
+  # - name: Archive Configuration
+  #   if: always()
+  #   uses: actions/upload-artifact@v2
+  #   with:
+  #     name: wso2-config
+  #     path: |
+  #       config.env
+  #       apis.csv 
