@@ -98,10 +98,10 @@ jobs:
         
         # Create WSO2 databases and user
         mysql -uroot -proot << EOF
-        CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
+        CREATE DATABASE IF NOT EXISTS WSO2_APIM_DB CHARACTER SET latin1;
         CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
         CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
-        GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
+        GRANT ALL PRIVILEGES ON WSO2_APIM_DB.* TO 'wso2carbon'@'localhost';
         GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
         FLUSH PRIVILEGES;
         EOF
@@ -111,8 +111,18 @@ jobs:
 
         # Run SQL scripts
         echo "Running SQL scripts..."
-        mysql uroot -proot WSO2AM_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/apimgt/mysql.sql
-        mysql -u root -proot WSO2_SHARED_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/mysql.sql
+        mysql -uwso2carbon -pwso2carbon WSO2_APIM_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/apimgt/mysql.sql
+        mysql -uwso2carbon -pwso2carbon WSO2_SHARED_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/mysql.sql
+
+        echo "SQL scripts executed successfully."
+
+        # List tables in databases
+        echo "Tables in WSO2_APIM_DB:"
+        mysql -uwso2carbon -pwso2carbon -e "USE WSO2_APIM_DB; SHOW TABLES;"
+        echo "Tables in WSO2_SHARED_DB:"
+        mysql -uwso2carbon pwso2carbon -e "USE WSO2_SHARED_DB; SHOW TABLES;"
+
+        echo "Tables listed successfully."
 
     - name: Change the DB config (if localhost)
       if: github.event.inputs.host == 'localhost'
@@ -128,16 +138,16 @@ jobs:
         cat << EOF > ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml
         [database.apim_db]
         type = "mysql"
-        url = "jdbc:mysql://localhost:3306/WSO2AM_DB?useSSL=false"
-        username = "root"
-        password = "${{ github.event.inputs.mysql_root_password }}"
+        url = "jdbc:mysql://localhost:3306/WSO2_APIM_DB?useSSL=false"
+        username = "wso2carbon"
+        password = "wso2carbon"
         driver = "com.mysql.cj.jdbc.Driver"
 
         [database.shared_db]
         type = "mysql"
         url = "jdbc:mysql://localhost:3306/WSO2_SHARED_DB?useSSL=false"
-        username = "root"
-        password = "${{ github.event.inputs.mysql_root_password }}"
+        username = "wso2carbon"
+        password = "wso2carbon"
         driver = "com.mysql.cj.jdbc.Driver"
         EOF
 
