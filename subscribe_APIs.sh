@@ -40,6 +40,19 @@ fi
 # echo "Application List Response:"
 # echo "$APP_LIST_RESPONSE"
 
+# TESTING
+echo "Checking connectivity..."
+curl -v -k "https://$HOST:$SERVLET_PORT/api/am/store/v1/apis"
+
+echo "Checking token scopes..."
+curl -s -k -H "Authorization: Bearer $ACCESS_TOKEN" \
+     "https://$HOST:$SERVLET_PORT/oauth2/introspect" \
+     -d "token=$ACCESS_TOKEN" -d "client_id=$SUBSCRIBER_CLIENT_ID" \
+     -d "client_secret=$SUBSCRIBER_CLIENT_SECRET"
+
+echo "Fetching API list with verbose logging..."
+curl -v -k -H "Authorization: Bearer $ACCESS_TOKEN" "https://$HOST:$SERVLET_PORT/api/am/store/v1/apis"
+
 # Step 4: Get list of APIs
 echo "Fetching API list..."
 API_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $ACCESS_TOKEN" \
