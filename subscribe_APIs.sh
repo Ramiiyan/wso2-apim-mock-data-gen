@@ -60,7 +60,7 @@ echo "Access token received successfully! : $PUB_ACCESS_TOKEN"
 
 echo "Fetching API list..."
 PUB_API_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $PUB_ACCESS_TOKEN" \
-                        "https://$HOST:$SERVLET_PORT/api/am/store/v1/apis")
+                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v1/apis")
 
 echo "PUB API List Response:"
 echo "$PUB_API_LIST_RESPONSE"
