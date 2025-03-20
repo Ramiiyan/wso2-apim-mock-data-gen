@@ -120,7 +120,7 @@ jobs:
         echo "Tables in WSO2_APIM_DB:"
         mysql -uwso2carbon -pwso2carbon -e "USE WSO2_APIM_DB; SHOW TABLES;"
         echo "Tables in WSO2_SHARED_DB:"
-        mysql -uwso2carbon pwso2carbon -e "USE WSO2_SHARED_DB; SHOW TABLES;"
+        mysql -uwso2carbon -pwso2carbon -e "USE WSO2_SHARED_DB; SHOW TABLES;"
 
         echo "Tables listed successfully."
 
