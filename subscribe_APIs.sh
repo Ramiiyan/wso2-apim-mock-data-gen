@@ -69,8 +69,7 @@ fi
 
 # Step 4: Get list of APIs
 echo "Fetching API list..."
-API_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $ACCESS_TOKEN" \
-                        "https://$HOST:$SERVLET_PORT/api/am/store/v1/apis")
+API_LIST_RESPONSE=$(curl -s -k "https://$HOST:$SERVLET_PORT/api/am/store/v1/apis")
 
 # Validate API list response
 if ! echo "$API_LIST_RESPONSE" | jq -e . >/dev/null 2>&1; then
