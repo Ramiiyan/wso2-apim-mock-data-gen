@@ -52,8 +52,8 @@ if ! echo "$API_LIST_RESPONSE" | jq -e . >/dev/null 2>&1; then
     exit 1
 fi
 
-# echo "API List Response:"
-# echo "$API_LIST_RESPONSE"
+echo "API List Response:"
+echo "$API_LIST_RESPONSE"
 
 # Extract application IDs into an array
 APP_IDS=($(echo "$APP_LIST_RESPONSE" | jq -r '.list[].applicationId'))
