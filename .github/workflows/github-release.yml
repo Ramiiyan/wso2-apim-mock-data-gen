@@ -1,0 +1,76 @@
+name: GitHub Release
+on:
+  workflow_call:
+    inputs:
+      git_org:
+        required: true
+        type: string
+      repository:
+        required: true
+        type: string
+      artifact_name:
+        required: true
+        type: string
+    secrets:
+      GIT_ACTION_PAT:
+        required: true
+
+jobs:
+  release_artifacts:
+    name: Release GitHub Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate GitHub CLI
+        env:
+          GIT_ACTION_PAT: ${{ secrets.GIT_ACTION_PAT }}
+        run: |
+          echo "$GIT_ACTION_PAT" | gh auth login --with-token
+
+      - name: Get latest release tag
+        id: get_latest_tag
+        env:
+          GIT_ORG: ${{ inputs.git_org }}
+          REPOSITORY: ${{ inputs.repository }}
+        run: |
+          current_tag_name=$(gh release view --repo "$GIT_ORG/$REPOSITORY" --json tagName --jq '.tagName' || echo "")
+          echo "current_tag_name=$current_tag_name" >> $GITHUB_ENV
+
+      - name: Determine new release version
+        id: determine_version
+        run: |
+          if [ -z "$current_tag_name" ]; then
+            new_tag="v0.1"
+          else
+            tag_version=$(echo "$current_tag_name" | grep -oP '\d+\.\d+' || echo "0.0")
+            IFS="." read -ra ver_compo <<< "$tag_version"
+            major_v="${ver_compo[0]}"
+            minor_v=$(( ${ver_compo[1]} + 1 ))
+            new_tag="v$major_v.$minor_v"
+          fi
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
+          echo "NEW_TAG_VERSION=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        env:
+          GIT_ORG: ${{ inputs.git_org }}
+          REPOSITORY: ${{ inputs.repository }}
+        run: |
+          gh release create "$new_tag" --title "$REPOSITORY - $new_tag" --notes "Release notes for version $new_tag" --repo "$GIT_ORG/$REPOSITORY"
+          echo "New GitHub Release created: $new_tag"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: artifacts/
+
+      - name: Upload artifacts to GitHub Release
+        env:
+          GIT_ORG: ${{ inputs.git_org }}
+          REPOSITORY: ${{ inputs.repository }}
+        run: |
+          gh release upload "$new_tag" artifacts/* --repo "$GIT_ORG/$REPOSITORY"
+          echo "Artifacts uploaded to GitHub release."
