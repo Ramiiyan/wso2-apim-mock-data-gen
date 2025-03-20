@@ -1,4 +1,5 @@
-name: GitHub Release
+name: Release GitHub Artifacts
+
 on:
   workflow_call:
     inputs:
