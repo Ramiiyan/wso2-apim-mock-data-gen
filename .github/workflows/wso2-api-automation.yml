@@ -38,7 +38,7 @@ on:
         required: false
 
 jobs:
-  setup-wso2-environment:
+  build-wso2-data:
     runs-on: ubuntu-latest
     env:
       PRODUCT_PACK_NAME : wso2am-3.2.0
@@ -215,12 +215,18 @@ jobs:
     
         # Zip the dumps folder
         zip -r mysql_dumps.zip mysql_dumps
-    
-  # - name: Archive Configuration
-  #   if: always()
-  #   uses: actions/upload-artifact@v2
-  #   with:
-  #     name: wso2-config
-  #     path: |
-  #       config.env
-  #       apis.csv 
+
+    - name: Upload MySQL Dumps as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mysql-database-dumps
+        path: mysql_dumps.zip
+  release:
+    needs: build-wso2-data  # Ensure artifacts are built before releasing
+    uses: ./.github/workflows/release.yml
+    with:
+      git_org: "Ramiiyan"
+      repository: "wso2-apim-mock-data-gen"
+      artifact_name: "mysql-database-dumps"
+    secrets:
+      GIT_ACTION_PAT: ${{ secrets.GIT_ACTION_PAT }}
