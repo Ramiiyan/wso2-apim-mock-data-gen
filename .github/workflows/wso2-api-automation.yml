@@ -223,7 +223,7 @@ jobs:
         path: mysql_dumps.zip
   release:
     needs: build-wso2-data  # Ensure artifacts are built before releasing
-    uses: ./.github/workflows/release.yml
+    uses: ./.github/workflows/github-release.yml
     with:
       git_org: "Ramiiyan"
       repository: "wso2-apim-mock-data-gen"
