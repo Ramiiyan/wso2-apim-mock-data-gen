@@ -40,8 +40,7 @@ fi
 # echo "Application List Response:"
 # echo "$APP_LIST_RESPONSE"
 
-# TESTING
-# Step: Get PUB Access Token
+# Step 4: Get PUB Access Token
 echo "Fetching PUB access token..."
 PUB_ACCESS_TOKEN_RESPONSE=$(curl -s -k -d "grant_type=password&username=$ADMIN_USERNAME&password=$ADMIN_PASSWORD&scope=$PUBLISHER_SCOPE" \
                           -H "Authorization: Basic $(printf "%s" "$PUBLISHER_CLIENT_ID:$PUBLISHER_CLIENT_SECRET" | base64)" \
@@ -62,24 +61,24 @@ echo "Fetching API list..."
 PUB_API_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $PUB_ACCESS_TOKEN" \
                         "https://$HOST:$SERVLET_PORT/api/am/publisher/v1/apis")
 
-echo "PUB API List Response:"
-echo "$PUB_API_LIST_RESPONSE"
+# echo "PUB API List Response:"
+# echo "$PUB_API_LIST_RESPONSE"
 
 
 
-# Step 4: Get list of APIs
-echo "Fetching API list..."
-API_LIST_RESPONSE=$(curl -s -k "https://$HOST:$SERVLET_PORT/api/am/store/v1/apis")
+# # Step 4: Get list of APIs
+# echo "Fetching API list..."
+# API_LIST_RESPONSE=$(curl -s -k "https://$HOST:$SERVLET_PORT/api/am/store/v1/apis")
 
 # Validate API list response
-if ! echo "$API_LIST_RESPONSE" | jq -e . >/dev/null 2>&1; then
+if ! echo "$PUB_API_LIST_RESPONSE" | jq -e . >/dev/null 2>&1; then
     echo "Error: Invalid JSON response from API list endpoint"
-    echo "Response: $API_LIST_RESPONSE"
+    echo "Response: $PUB_API_LIST_RESPONSE"
     exit 1
 fi
 
-echo "API List Response:"
-echo "$API_LIST_RESPONSE"
+# echo "API List Response:"
+# echo "$API_LIST_RESPONSE"
 
 # Extract application IDs into an array
 APP_IDS=($(echo "$APP_LIST_RESPONSE" | jq -r '.list[].applicationId'))
@@ -92,7 +91,7 @@ fi
 echo "Found ${#APP_IDS[@]} applications"
 
 # Extract API IDs into an array
-API_IDS=($(echo "$API_LIST_RESPONSE" | jq -r '.list[].id'))
+API_IDS=($(echo "$PUB_API_LIST_RESPONSE" | jq -r '.list[].id'))
 
 if [[ ${#API_IDS[@]} -eq 0 ]]; then
   echo "No APIs found"
