@@ -210,7 +210,7 @@ jobs:
         mkdir -p mysql_dumps
         
         # Dump each database into a separate file
-        mysqldump -u root -proot WSO2AM_DB > mysql_dumps/WSO2AM_DB.sql
+        mysqldump -u root -proot WSO2_APIM_DB > mysql_dumps/WSO2_APIM_DB.sql
         mysqldump -u root -proot WSO2_SHARED_DB > mysql_dumps/WSO2_SHARED_DB.sql
     
         # Zip the dumps folder
