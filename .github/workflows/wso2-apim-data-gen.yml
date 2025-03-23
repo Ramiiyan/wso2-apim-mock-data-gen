@@ -226,12 +226,13 @@ jobs:
     
         # Zip the dumps folder
         zip -r "$DIR_NAME.zip" "$DIR_NAME"
+        echo "DIR_NAME=$DIR_NAME" >> $GITHUB_ENV
 
     - name: Upload MySQL Dumps as Artifact
       uses: actions/upload-artifact@v4
       with:
         name: mysql-database-dumps
-        path: "$DIR_NAME.zip"
+        path: ${{ env.DIR_NAME }}.zip
 
   release:
     needs: build-wso2-data  # Ensure artifacts are built before releasing
