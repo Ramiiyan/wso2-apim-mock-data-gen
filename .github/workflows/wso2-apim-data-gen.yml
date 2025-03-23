@@ -217,20 +217,21 @@ jobs:
     - name: Create and Zip MySQL Database Dumps
       run: |
         # Create a backup folder
-        mkdir -p mysql_dumps
+        DIR_NAME="mysql_dumps-$PRODUCT_PACK_NAME-$(date +'%Y-%m-%d-%H-%M-%S')"
+        mkdir -p $DIR_NAME
         
         # Dump each database into a separate file
-        mysqldump -u root -proot WSO2_APIM_DB > mysql_dumps/WSO2_APIM_DB.sql
-        mysqldump -u root -proot WSO2_SHARED_DB > mysql_dumps/WSO2_SHARED_DB.sql
+        mysqldump -u root -proot WSO2_APIM_DB > $DIR_NAME/WSO2_APIM_DB.sql
+        mysqldump -u root -proot WSO2_SHARED_DB > $DIR_NAME/WSO2_SHARED_DB.sql
     
         # Zip the dumps folder
-        zip -r mysql_dumps.zip mysql_dumps
+        zip -r $DIR_NAME.zip $DIR_NAME
 
     - name: Upload MySQL Dumps as Artifact
       uses: actions/upload-artifact@v4
       with:
         name: mysql-database-dumps
-        path: mysql_dumps.zip
+        path: $DIR_NAME.zip
   release:
     needs: build-wso2-data  # Ensure artifacts are built before releasing
     uses: ./.github/workflows/github-release.yml
@@ -238,6 +239,6 @@ jobs:
       git_org: "Ramiiyan"
       repository: "wso2-apim-mock-data-gen"
       artifact_name: "mysql-database-dumps"
-      product_version: ${{ github.event.inputs.apim_version }}
+      product: wso2am-${{ github.event.inputs.apim_version }}
     secrets:
       GIT_ACTION_PAT: ${{ secrets.GIT_ACTION_PAT }}
