@@ -2,8 +2,8 @@ name: Test mysql
 
 on:
   push:
-    branches:
-      - main
+    paths:
+      - '.github/workflows/test-mysql.yml'
 
 jobs:
   setup-wso2-environment:
