@@ -51,7 +51,7 @@ jobs:
   build-wso2-data:
     runs-on: ubuntu-latest
     env:
-      PRODUCT_PACK_NAME : wso2am-{{ github.event.inputs.apim_version }}
+      PRODUCT_PACK_NAME : wso2am-${{ github.event.inputs.apim_version }}
     
     steps:
     - uses: actions/checkout@v2
@@ -72,7 +72,7 @@ jobs:
       if: github.event.inputs.host == 'localhost'
       run: |
         # Download WSO2 API Manager
-        wget https://github.com/wso2/product-apim/releases/download/v{{ github.event.inputs.apim_version }}/wso2am-{{ github.event.inputs.apim_version }}.zip
+        wget https://github.com/wso2/product-apim/releases/download/v${{ github.event.inputs.apim_version }}/wso2am-${{ github.event.inputs.apim_version }}.zip
         
         # Extract the package
         unzip ${{ env.PRODUCT_PACK_NAME }}.zip
@@ -238,5 +238,6 @@ jobs:
       git_org: "Ramiiyan"
       repository: "wso2-apim-mock-data-gen"
       artifact_name: "mysql-database-dumps"
+      product_version: ${{ github.event.inputs.apim_version }}
     secrets:
       GIT_ACTION_PAT: ${{ secrets.GIT_ACTION_PAT }}

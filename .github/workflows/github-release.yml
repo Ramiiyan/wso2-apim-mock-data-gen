@@ -12,6 +12,9 @@ on:
       artifact_name:
         required: true
         type: string
+      product_version:
+        required: true
+        type: string
     secrets:
       GIT_ACTION_PAT:
         required: true
@@ -20,6 +23,10 @@ jobs:
   release_artifacts:
     name: Release GitHub Artifacts
     runs-on: ubuntu-latest
+    env:
+      GIT_ORG: ${{ inputs.git_org }}
+      REPOSITORY: ${{ inputs.repository }}
+      PRODUCT_VERSION: apim-${{ inputs.product_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,9 +39,6 @@ jobs:
 
       - name: Get latest release tag
         id: get_latest_tag
-        env:
-          GIT_ORG: ${{ inputs.git_org }}
-          REPOSITORY: ${{ inputs.repository }}
         run: |
           current_tag_name=$(gh release view --repo "$GIT_ORG/$REPOSITORY" --json tagName --jq '.tagName' || echo "")
           echo "current_tag_name=$current_tag_name" >> $GITHUB_ENV
@@ -55,11 +59,8 @@ jobs:
           echo "NEW_TAG_VERSION=$new_tag" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        env:
-          GIT_ORG: ${{ inputs.git_org }}
-          REPOSITORY: ${{ inputs.repository }}
         run: |
-          gh release create "$new_tag" --title "$REPOSITORY - $new_tag" --notes "Release notes for version $new_tag" --repo "$GIT_ORG/$REPOSITORY"
+          gh release create "$new_tag" --title "$REPOSITORY - $PRODUCT_VERSION - $new_tag" --notes "Release notes for $PRODUCT_VERSION product: release version $new_tag" --repo "$GIT_ORG/$REPOSITORY"
           echo "New GitHub Release created: $new_tag"
 
       - name: Download build artifacts
@@ -69,9 +70,6 @@ jobs:
           path: artifacts/
 
       - name: Upload artifacts to GitHub Release
-        env:
-          GIT_ORG: ${{ inputs.git_org }}
-          REPOSITORY: ${{ inputs.repository }}
         run: |
           gh release upload "$new_tag" artifacts/* --repo "$GIT_ORG/$REPOSITORY"
           echo "Artifacts uploaded to GitHub release."
