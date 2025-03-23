@@ -1,4 +1,4 @@
-name: WSO2 APIM 3.2.0 Dummy Data Automation
+name: WSO2 APIM Dummy Data Generator
 
 on:
   workflow_dispatch:
