@@ -3,6 +3,16 @@ name: WSO2 APIM 3.2.0 Dummy Data Automation
 on:
   workflow_dispatch:
     inputs:
+      apim_version:
+        description: 'WSO2 APIM Version'
+        type: choice
+        options:
+          - '3.2.0'
+          - '4.3.0'
+          - '4.4.0'
+          - '4.5.0'
+        required: false
+        default: '3.2.0'
       host:
         description: 'WSO2 APIM Host'
         required: true
@@ -41,7 +51,7 @@ jobs:
   build-wso2-data:
     runs-on: ubuntu-latest
     env:
-      PRODUCT_PACK_NAME : wso2am-3.2.0
+      PRODUCT_PACK_NAME : wso2am-{{ github.event.inputs.apim_version }}
     
     steps:
     - uses: actions/checkout@v2
@@ -62,7 +72,7 @@ jobs:
       if: github.event.inputs.host == 'localhost'
       run: |
         # Download WSO2 API Manager
-        wget https://github.com/wso2/product-apim/releases/download/v3.2.0/wso2am-3.2.0.zip
+        wget https://github.com/wso2/product-apim/releases/download/v{{ github.event.inputs.apim_version }}/wso2am-{{ github.event.inputs.apim_version }}.zip
         
         # Extract the package
         unzip ${{ env.PRODUCT_PACK_NAME }}.zip
