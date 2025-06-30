@@ -69,7 +69,7 @@ jobs:
           echo "Version extracted: $VERSION"
           echo "apim_version=$VERSION" >> $GITHUB_ENV
           echo "PRODUCT_PACK_NAME=wso2am-$VERSION" >> $GITHUB_ENV
-          echo "PRODUCT_PACK_NAME=${{ env.PRODUCT_PACK_NAME }}" >> $GITHUB_OUTPUT
+          echo "PRODUCT_PACK_NAME=wso2am-$VERSION" >> $GITHUB_OUTPUT
         else
           echo "Error: Could not extract version from branch name $BRANCH_NAME"
           echo "Branch name should be in format 'wso2am-X.Y.Z' or 'X.Y.Z'"
