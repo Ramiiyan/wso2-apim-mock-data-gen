@@ -3,16 +3,19 @@ name: WSO2 APIM Dummy Data Generator
 on:
   workflow_dispatch:
     inputs:
-      apim_version:
-        description: 'WSO2 APIM Version'
-        type: choice
-        options:
-          - '3.2.0'
-          - '4.3.0'
-          - '4.4.0'
-          - '4.5.0'
-        required: false
-        default: '3.2.0'
+      # apim_version:
+      #   description: 'WSO2 APIM Version'
+      #   type: choice
+      #   options:
+      #     - '3.2.0'
+      #     - '4.0.0'
+      #     - '4.1.0'
+      #     - '4.2.0'
+      #     - '4.3.0'
+      #     - '4.4.0'
+      #     - '4.5.0'
+      #   required: true
+      #   default: '3.2.0'
       host:
         description: 'WSO2 APIM Host'
         required: true
@@ -55,11 +58,29 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
-
+    
+    - name: Extract APIM Version from Branch Name
+      id: extract_version
+      run: |
+        # Remove 'refs/heads/' prefix if present
+        BRANCH_NAME="${{ github.ref_name }}"
+        echo "Branch Name: $BRANCH_NAME"
+        # Extract version using regex pattern
+        if [[ $BRANCH_NAME =~ ^(wso2am-)?([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+          VERSION="${BASH_REMATCH[2]}"
+          echo "Version extracted: $VERSION"
+          echo "apim_version=$VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "Error: Could not extract version from branch name $BRANCH_NAME"
+          echo "Branch name should be in format 'wso2am-X.Y.Z' or 'X.Y.Z'"
+          exit 1
+        fi
+    
     - name: Install Common Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y curl jq
+        echo "wso2 apim_version : ${{ env.apim_version }}"
 
     # Use the setup-java action to configure the Java environment
     - name: 'Set up JDK 8'
