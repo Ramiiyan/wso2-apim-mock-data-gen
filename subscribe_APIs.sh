@@ -28,7 +28,7 @@ echo "Access token received successfully! : $ACCESS_TOKEN"
 # Step 3: Get list of applications
 echo "Fetching application list..."
 APP_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $ACCESS_TOKEN" \
-                       "https://$HOST:$SERVLET_PORT/api/am/store/v1/applications")
+                       "https://$HOST:$SERVLET_PORT/api/am/devportal/v2/applications")
 
 # Validate application list response
 if ! echo "$APP_LIST_RESPONSE" | jq -e . >/dev/null 2>&1; then
@@ -59,7 +59,7 @@ echo "PUB Access token received successfully! : $PUB_ACCESS_TOKEN"
 
 echo "Fetching API list..."
 PUB_API_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $PUB_ACCESS_TOKEN" \
-                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v1/apis")
+                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v2/apis")
 
 # echo "PUB API List Response:"
 # echo "$PUB_API_LIST_RESPONSE"
@@ -133,7 +133,7 @@ SUBSCRIPTION_RESPONSE=$(curl -s -k \
     -H "Content-Type: application/json" \
     -X POST \
     -d "$SUBSCRIPTION_PAYLOAD" \
-    "https://$HOST:$SERVLET_PORT/api/am/store/v1/subscriptions/multiple")
+    "https://$HOST:$SERVLET_PORT/api/am/devportal/v2/subscriptions/multiple")
 
 # Check subscription response
 if ! echo "$SUBSCRIPTION_RESPONSE" | jq -e . >/dev/null 2>&1; then
