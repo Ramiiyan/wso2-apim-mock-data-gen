@@ -12,14 +12,14 @@ fi
 echo "Fetching access token..."
 ACCESS_TOKEN_RESPONSE=$(curl -s -k -d "grant_type=password&username=$ADMIN_USERNAME&password=$ADMIN_PASSWORD&scope=$SUBSCRIBER_SCOPE" \
                           -H "Authorization: Basic $(printf "%s" "$SUBSCRIBER_CLIENT_ID:$SUBSCRIBER_CLIENT_SECRET" | base64)" \
-                          "https://$HOST:$SERVLET_PORT/oauth2/token")
+                          "https://$HOST:$GATEWAY_PORT/token")
 
 # echo "Access token response.."
 # echo "$ACCESS_TOKEN_RESPONSE"
 ACCESS_TOKEN=$(echo "$ACCESS_TOKEN_RESPONSE" | jq -r '.access_token')
 
-if [[ -z "$ACCESS_TOKEN" || "$ACCESS_TOKEN" == "null" ]]; then
-  echo "Failed to get access token. Response: $ACCESS_TOKEN_RESPONSE"
+if [[ -z "$ACCESS_TOKEN" ]]; then
+  echo "Failed to get access token."
   exit 1
 fi
 
@@ -28,7 +28,7 @@ echo "Access token received successfully! : $ACCESS_TOKEN"
 # Step 3: Get list of applications
 echo "Fetching application list..."
 APP_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $ACCESS_TOKEN" \
-                       "https://$HOST:$SERVLET_PORT/api/am/devportal/v2/applications")
+                       "https://$HOST:$SERVLET_PORT/api/am/store/v1/applications")
 
 # Validate application list response
 if ! echo "$APP_LIST_RESPONSE" | jq -e . >/dev/null 2>&1; then
@@ -44,14 +44,14 @@ fi
 echo "Fetching PUB access token..."
 PUB_ACCESS_TOKEN_RESPONSE=$(curl -s -k -d "grant_type=password&username=$ADMIN_USERNAME&password=$ADMIN_PASSWORD&scope=$PUBLISHER_SCOPE" \
                           -H "Authorization: Basic $(printf "%s" "$PUBLISHER_CLIENT_ID:$PUBLISHER_CLIENT_SECRET" | base64)" \
-                          "https://$HOST:$SERVLET_PORT/oauth2/token")
+                          "https://$HOST:$GATEWAY_PORT/token")
 
 echo "Access token response.."
 echo "$PUB_ACCESS_TOKEN_RESPONSE"
 PUB_ACCESS_TOKEN=$(echo "$PUB_ACCESS_TOKEN_RESPONSE" | jq -r '.access_token')
 
-if [[ -z "$ACCESS_TOKEN" || "$ACCESS_TOKEN" == "null" ]]; then
-  echo "Failed to get access token. Response: $ACCESS_TOKEN_RESPONSE"
+if [[ -z "$PUB_ACCESS_TOKEN" ]]; then
+  echo "Failed to get access token."
   exit 1
 fi
 
@@ -59,7 +59,7 @@ echo "PUB Access token received successfully! : $PUB_ACCESS_TOKEN"
 
 echo "Fetching API list..."
 PUB_API_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $PUB_ACCESS_TOKEN" \
-                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v2/apis")
+                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v1/apis")
 
 # echo "PUB API List Response:"
 # echo "$PUB_API_LIST_RESPONSE"
@@ -133,7 +133,7 @@ SUBSCRIPTION_RESPONSE=$(curl -s -k \
     -H "Content-Type: application/json" \
     -X POST \
     -d "$SUBSCRIPTION_PAYLOAD" \
-    "https://$HOST:$SERVLET_PORT/api/am/devportal/v2/subscriptions/multiple")
+    "https://$HOST:$SERVLET_PORT/api/am/store/v1/subscriptions/multiple")
 
 # Check subscription response
 if ! echo "$SUBSCRIPTION_RESPONSE" | jq -e . >/dev/null 2>&1; then
