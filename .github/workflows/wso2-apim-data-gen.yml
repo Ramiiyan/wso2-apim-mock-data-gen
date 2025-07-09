@@ -53,7 +53,8 @@ on:
 jobs:
   build-wso2-data:
     runs-on: ubuntu-latest
-    
+    outputs:
+      PRODUCT_PACK_NAME: ${{ steps.extract_version.outputs.PRODUCT_PACK_NAME }}
     steps:
     - uses: actions/checkout@v2
     
