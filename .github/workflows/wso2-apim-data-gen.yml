@@ -259,8 +259,8 @@ jobs:
     needs: build-wso2-data  # Ensure artifacts are built before releasing
     uses: ./.github/workflows/github-release.yml
     with:
-      git_org: "Ramiiyan"
-      repository: "wso2-apim-mock-data-gen"
+      git_org: "${{ github.repository_owner }}"
+      repository: "${{ github.event.repository.name }}"
       artifact_name: "mysql-database-dumps"
       product: ${{ needs.build-wso2-data.outputs.PRODUCT_PACK_NAME }}
     secrets:
