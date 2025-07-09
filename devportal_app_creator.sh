@@ -42,15 +42,15 @@ echo "SUBSCRIBER_CLIENT_SECRET=$SUBSCRIBER_CLIENT_SECRET" >> config.env
 echo "Fetching access token..."
 ACCESS_TOKEN_RESPONSE=$(curl -s -k -d "grant_type=password&username=$ADMIN_USERNAME&password=$ADMIN_PASSWORD&scope=$SUBSCRIBER_SCOPE" \
                           -H "Authorization: Basic $(printf "%s" "$SUBSCRIBER_CLIENT_ID:$SUBSCRIBER_CLIENT_SECRET" | base64)" \
-                          "https://$HOST:$GATEWAY_PORT/token")
+                          "https://$HOST:$SERVLET_PORT/oauth2/token")
 
 # echo "Access token response.."
 # echo "$ACCESS_TOKEN_RESPONSE"
 
 ACCESS_TOKEN=$(echo "$ACCESS_TOKEN_RESPONSE" | jq -r '.access_token')
 
-if [[ -z "$ACCESS_TOKEN" ]]; then
-  echo "Failed to get access token."
+if [[ -z "$ACCESS_TOKEN" || "$ACCESS_TOKEN" == "null" ]]; then
+  echo "Failed to get access token. Response: $ACCESS_TOKEN_RESPONSE"
   exit 1
 fi
 
@@ -78,7 +78,7 @@ for i in $(seq 1 $NUM_APPS); do
                       -H "Authorization: Bearer $ACCESS_TOKEN" \
                       -H "Content-Type: application/json" \
                       -d "$APP_PAYLOAD" \
-                      "https://$HOST:$SERVLET_PORT/api/am/store/v1/applications")
+                      "https://$HOST:$SERVLET_PORT/api/am/devportal/v2/applications")
 
   # Check if curl request was successful
   if [[ $? -ne 0 ]]; then

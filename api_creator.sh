@@ -47,15 +47,15 @@ echo "PUBLISHER_CLIENT_SECRET=$PUBLISHER_CLIENT_SECRET" >> config.env
 echo "Fetching access token..."
 ACCESS_TOKEN_RESPONSE=$(curl -s -k -d "grant_type=password&username=$ADMIN_USERNAME&password=$ADMIN_PASSWORD&scope=$PUBLISHER_SCOPE" \
                           -H "Authorization: Basic $(printf "%s" "$PUBLISHER_CLIENT_ID:$PUBLISHER_CLIENT_SECRET" | base64)" \
-                          "https://$HOST:$GATEWAY_PORT/token")
+                          "https://$HOST:$SERVLET_PORT/oauth2/token")
 
 # echo "Access token response.."
 # echo "$ACCESS_TOKEN_RESPONSE"
 
 ACCESS_TOKEN=$(echo "$ACCESS_TOKEN_RESPONSE" | jq -r '.access_token')
 
-if [[ -z "$ACCESS_TOKEN" ]]; then
-  echo "Failed to get access token."
+if [[ -z "$ACCESS_TOKEN" || "$ACCESS_TOKEN" == "null" ]]; then
+  echo "Failed to get access token. Response: $ACCESS_TOKEN_RESPONSE"
   exit 1
 fi
 
@@ -106,7 +106,7 @@ while IFS=',' read -r API_NAME CONTEXT ENDPOINT; do
   API_RESPONSE=$(curl -s -k -X POST -H "Authorization: Bearer $ACCESS_TOKEN" \
                         -H "Content-Type: application/json" \
                         -d "$API_PAYLOAD" \
-                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v1/apis")
+                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v2/apis")
 
   echo "API Creation Response: $API_RESPONSE"
   
