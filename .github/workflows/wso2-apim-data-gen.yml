@@ -232,7 +232,7 @@ jobs:
 
     - name: List APIs(Test Run)
       run: |
-        curl -k "https://${{ github.event.inputs.host }}:9443/api/am/store/v1/apis"
+        curl -k "https://${{ github.event.inputs.host }}:/api/am/devportal/v2/apis" # APIM 4.1.0 Devportal API version is v2
       continue-on-error: true
 
     - name: Create and Zip MySQL Database Dumps

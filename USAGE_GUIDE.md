@@ -338,7 +338,7 @@ This workflow automates the entire mock data generation process in CI/CD.
 - `U2_lvl`: Update level (optional)
 
 **Process:**
-1. Extracts APIM version from branch name (e.g., `wso2am-4.0.0`)
+1. Extracts APIM version from branch name (e.g., `wso2am-4.1.0`)
 2. Downloads and extracts WSO2 APIM package
 3. Configures MySQL database (if needed)
 4. Starts WSO2 APIM instance
@@ -527,7 +527,7 @@ For issues or questions:
 ## Version Compatibility
 
 This toolkit has been tested with:
-- WSO2 API Manager 3.2.0 & 4.0.0
+- WSO2 API Manager 3.2.0, 4.0.0, 4.1.0
 - MySQL 5.8+
 - JDK 11
 

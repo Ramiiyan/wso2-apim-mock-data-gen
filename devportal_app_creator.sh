@@ -78,7 +78,7 @@ for i in $(seq 1 $NUM_APPS); do
                       -H "Authorization: Bearer $ACCESS_TOKEN" \
                       -H "Content-Type: application/json" \
                       -d "$APP_PAYLOAD" \
-                      "https://$HOST:$SERVLET_PORT/api/am/devportal/v2/applications")
+                      "https://$HOST:$SERVLET_PORT/api/am/devportal/v2/applications") # In APIM 4.1.0, Devportal API version is v2
 
   # Check if curl request was successful
   if [[ $? -ne 0 ]]; then
