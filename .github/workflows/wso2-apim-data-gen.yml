@@ -69,6 +69,7 @@ jobs:
           VERSION="${BASH_REMATCH[2]}"
           echo "Version extracted: $VERSION"
           echo "apim_version=$VERSION" >> $GITHUB_ENV
+          echo "apim_version=$VERSION" >> $GITHUB_OUTPUT
           echo "PRODUCT_PACK_NAME=wso2am-$VERSION" >> $GITHUB_ENV
           echo "PRODUCT_PACK_NAME=wso2am-$VERSION" >> $GITHUB_OUTPUT
         else
@@ -80,7 +81,7 @@ jobs:
     - name: Install Common Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y curl jq
+        sudo apt-get install -y curl jq unzip maven
 
     # Use the setup-java action to configure the Java environment
     - name: 'Set up JDK 11'
@@ -88,9 +89,52 @@ jobs:
       with:
         java-version: '11'
         distribution: 'temurin'
+        cache: maven
     
+    - name: Build APIM from Source (if 4.1.0)
+      if: ${{ github.event.inputs.host == 'localhost' && steps.extract_version.outputs.apim_version == '4.1.0' }}
+      run: |
+        # Download WSO2 APIM source for v4.1.0 and build it
+        echo "Downloading WSO2 APIM source v4.1.0..."
+        wget https://github.com/wso2/product-apim/archive/refs/tags/v4.1.0.zip -O product-apim-v4.1.0.zip
+        unzip product-apim-v4.1.0.zip
+
+        # Determine extracted directory (GitHub archive creates product-apim-4.1.0)
+        SRC_DIR=$(ls -d product-apim-* 2>/dev/null | head -n1)
+        echo "Source dir: $SRC_DIR"
+        if [ -z "$SRC_DIR" ]; then
+          echo "Could not find extracted source directory"
+          exit 1
+        fi
+
+        cd "$SRC_DIR"
+
+        # Build the product using Maven (skip tests to speed up)
+        echo "Building product with Maven..."
+        mvn clean install -Dmaven.test.skip=true
+
+        # Expected product zip path after build
+        PRODUCT_ZIP_PATH="$(pwd)/modules/distribution/product/target/wso2am-4.1.0.zip"
+        if [ -f "$PRODUCT_ZIP_PATH" ]; then
+          # copy built product to the repository root (one level up from extracted source)
+          cp "$PRODUCT_ZIP_PATH" ..
+          BASENAME=$(basename "$PRODUCT_ZIP_PATH")
+          echo "Built product copied to repository root: $BASENAME"
+          # rename to expected product name so later steps can reference ${PRODUCT_PACK_NAME}.zip
+          TARGET_ZIP="../${PRODUCT_PACK_NAME}.zip"
+          echo "Renaming ../$BASENAME -> $TARGET_ZIP"
+          mv "../$BASENAME" "$TARGET_ZIP"
+          echo "Extracting $TARGET_ZIP into repository root..."
+          unzip "$TARGET_ZIP" -d ..
+          echo "Extraction complete"
+        else
+          echo "Error: built product not found at $PRODUCT_ZIP_PATH"
+          exit 1
+        fi
+        cd ..
+
     - name: Get APIM Pack (if localhost)
-      if: github.event.inputs.host == 'localhost'
+      if: ${{ github.event.inputs.host == 'localhost' && steps.extract_version.outputs.apim_version != '4.1.0' }}
       run: |
         # Download WSO2 API Manager
         wget https://github.com/wso2/product-apim/releases/download/v${{ env.apim_version }}/${{ env.PRODUCT_PACK_NAME }}.zip
@@ -232,7 +276,7 @@ jobs:
 
     - name: List APIs(Test Run)
       run: |
-        curl -k "https://${{ github.event.inputs.host }}:/api/am/devportal/v2/apis" # APIM 4.1.0 Devportal API version is v2
+        curl -k "https://${{ github.event.inputs.host }}:9443/api/am/store/v1/apis"
       continue-on-error: true
 
     - name: Create and Zip MySQL Database Dumps
