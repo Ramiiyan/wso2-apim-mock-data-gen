@@ -89,7 +89,6 @@ jobs:
       with:
         java-version: '11'
         distribution: 'temurin'
-        cache: maven
     
     - name: Build APIM from Source (if 4.1.0)
       if: ${{ github.event.inputs.host == 'localhost' && steps.extract_version.outputs.apim_version == '4.1.0' }}
@@ -109,6 +108,10 @@ jobs:
 
         cd "$SRC_DIR"
 
+        # Cache Maven packages
+        echo "Setting up Maven cache..."
+        mkdir -p ~/.m2
+        
         # Build the product using Maven (skip tests to speed up)
         echo "Building product with Maven..."
         mvn clean install -Dmaven.test.skip=true
@@ -132,6 +135,15 @@ jobs:
           exit 1
         fi
         cd ..
+
+    - name: Cache Maven packages (persist to next run)
+      if: ${{ github.event.inputs.host == 'localhost' && steps.extract_version.outputs.apim_version == '4.1.0' }}
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-wso2-${{ hashFiles('product-apim-*/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-wso2-
 
     - name: Get APIM Pack (if localhost)
       if: ${{ github.event.inputs.host == 'localhost' && steps.extract_version.outputs.apim_version != '4.1.0' }}
