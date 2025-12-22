@@ -95,7 +95,7 @@ jobs:
       run: |
         # Download WSO2 APIM source for v4.1.0 and build it
         echo "Downloading WSO2 APIM source v4.1.0..."
-        wget https://github.com/wso2/product-apim/archive/refs/tags/v4.1.0.zip -O product-apim-v4.1.0.zip
+        wget -q https://github.com/wso2/product-apim/archive/refs/tags/v4.1.0.zip -O product-apim-v4.1.0.zip
         unzip product-apim-v4.1.0.zip
 
         # Determine extracted directory (GitHub archive creates product-apim-4.1.0)
@@ -149,7 +149,7 @@ jobs:
       if: ${{ github.event.inputs.host == 'localhost' && steps.extract_version.outputs.apim_version != '4.1.0' }}
       run: |
         # Download WSO2 API Manager
-        wget https://github.com/wso2/product-apim/releases/download/v${{ env.apim_version }}/${{ env.PRODUCT_PACK_NAME }}.zip
+        wget -q https://github.com/wso2/product-apim/releases/download/v${{ env.apim_version }}/${{ env.PRODUCT_PACK_NAME }}.zip
         
         # Extract the package
         unzip ${{ env.PRODUCT_PACK_NAME }}.zip
@@ -157,7 +157,7 @@ jobs:
     - name: Get DB connector
       run: |
         # Download MYSQL Connector
-        wget https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-8.0.32.zip
+        wget -q https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-8.0.32.zip
 
          # Extract the package
         unzip mysql-connector-j-8.0.32.zip
