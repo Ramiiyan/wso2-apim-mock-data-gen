@@ -150,7 +150,6 @@ jobs:
       run: |
         # Download WSO2 API Manager
         wget -q https://github.com/wso2/product-apim/releases/download/v${{ env.apim_version }}/${{ env.PRODUCT_PACK_NAME }}.zip
-        
         # Extract the package
         unzip ${{ env.PRODUCT_PACK_NAME }}.zip
     

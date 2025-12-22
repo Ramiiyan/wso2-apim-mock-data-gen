@@ -106,7 +106,7 @@ while IFS=',' read -r API_NAME CONTEXT ENDPOINT; do
   API_RESPONSE=$(curl -s -k -X POST -H "Authorization: Bearer $ACCESS_TOKEN" \
                         -H "Content-Type: application/json" \
                         -d "$API_PAYLOAD" \
-                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v3/apis")
+                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v4/apis")
 
   echo "API Creation Response: $API_RESPONSE"
   

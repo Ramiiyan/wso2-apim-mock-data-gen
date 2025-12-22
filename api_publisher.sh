@@ -28,7 +28,7 @@ echo "Access token received successfully! : $ACCESS_TOKEN"
 # Step 3: Get list of APIs
 echo "Fetching API list..."
 API_LIST_RESPONSE=$(curl -s -k -H "Authorization: Bearer $ACCESS_TOKEN" \
-                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v3/apis")
+                        "https://$HOST:$SERVLET_PORT/api/am/publisher/v4/apis")
 
 # Validate API list response
 if ! echo "$API_LIST_RESPONSE" | jq -e . >/dev/null 2>&1; then
@@ -54,7 +54,7 @@ for api_id in "${API_IDS[@]}"; do
   # Check lifecycle state for each API
   echo "Checking lifecycle state for API $api_id..."
   LIFECYCLE_STATE_RESPONSE=$(curl -s -k -H "Authorization: Bearer $ACCESS_TOKEN" \
-                            "https://$HOST:$SERVLET_PORT/api/am/publisher/v3/apis/$api_id/lifecycle-state")
+                            "https://$HOST:$SERVLET_PORT/api/am/publisher/v4/apis/$api_id/lifecycle-state")
   
   # Validate lifecycle response
   if ! echo "$LIFECYCLE_STATE_RESPONSE" | jq -e . >/dev/null 2>&1; then
@@ -74,7 +74,7 @@ for api_id in "${API_IDS[@]}"; do
     echo "Publishing API $api_id..."
     PUBLISH_RESPONSE=$(curl -k -X POST \
                           -H "Authorization: Bearer $ACCESS_TOKEN" \
-                          "https://$HOST:$SERVLET_PORT/api/am/publisher/v3/apis/change-lifecycle?apiId=$api_id&action=Publish")
+                          "https://$HOST:$SERVLET_PORT/api/am/publisher/v4/apis/change-lifecycle?apiId=$api_id&action=Publish")
     
     # Validate publish response
     if ! echo "$PUBLISH_RESPONSE" | jq -e . >/dev/null 2>&1; then
