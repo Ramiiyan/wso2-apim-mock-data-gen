@@ -2,14 +2,14 @@ API_Name,Context,Endpoint
 RandomUserAPI,randomuser,https://randomuser.me/api
 CatFactsAPI,catfacts,https://catfact.ninja/fact
 JSONPlaceholderAPI,jsonplaceholder,https://jsonplaceholder.typicode.com
-BoredAPI,boredapi,https://www.boredapi.com/api/activity
+ActivityAPI,activity,https://www.freetogame.com/api/games
 ChuckNorrisJokesAPI,getrandomjokes,https://api.chucknorris.io/jokes/random
 AdviceSlipAPI,getrandomlifeadvice,https://api.adviceslip.com/advice
 NumbersAPI,numbersapi,http://numbersapi.com/random/
 IPifyAPI,GetyourpublicIPaddress,https://api.ipify.org?format=json
 DogCEOAPI,randomdogimage,https://dog.ceo/api/breeds/image/random
 CatAPI,randomcatimage,https://api.thecatapi.com/v1/images/search
-QuotesAPI,randomquote,https://api.quotable.io/random
+ZenQuotesAPI,randomquote,https://zenquotes.io/api/random
 JokeAPI,randomjoke,https://v2.jokeapi.dev/joke/Any
 AgifyAPI,agify,https://api.agify.io?name=michael
 GenderizeAPI,genderize,https://api.genderize.io?name=lucas

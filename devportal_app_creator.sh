@@ -33,10 +33,12 @@ if [[ -z "$SUBSCRIBER_CLIENT_ID" || -z "$SUBSCRIBER_CLIENT_SECRET" ]]; then
 fi
 echo "Client registered successfully!"
 
-# Append the client credentials to config.env
+# Update subscriber credentials in config.env (replace existing values, avoid duplicates)
+sed -i.bak '/^SUBSCRIBER_CLIENT_ID=/d;/^SUBSCRIBER_CLIENT_SECRET=/d;/^# Subscriber Client Credentials/d' config.env
 echo "# Subscriber Client Credentials" >> config.env
 echo "SUBSCRIBER_CLIENT_ID=$SUBSCRIBER_CLIENT_ID" >> config.env
 echo "SUBSCRIBER_CLIENT_SECRET=$SUBSCRIBER_CLIENT_SECRET" >> config.env
+rm -f config.env.bak
 
 # Step 2: Get Access Token
 echo "Fetching access token..."

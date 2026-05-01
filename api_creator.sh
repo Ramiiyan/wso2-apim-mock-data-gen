@@ -38,10 +38,12 @@ if [[ -z "$PUBLISHER_CLIENT_ID" || -z "$PUBLISHER_CLIENT_SECRET" ]]; then
 fi
 echo "Client registered successfully!"
 
-# Append the client credentials to config.env
+# Update publisher credentials in config.env (replace existing values, avoid duplicates)
+sed -i.bak '/^PUBLISHER_CLIENT_ID=/d;/^PUBLISHER_CLIENT_SECRET=/d;/^# Publisher Client Credentials/d' config.env
 echo "# Publisher Client Credentials" >> config.env
 echo "PUBLISHER_CLIENT_ID=$PUBLISHER_CLIENT_ID" >> config.env
 echo "PUBLISHER_CLIENT_SECRET=$PUBLISHER_CLIENT_SECRET" >> config.env
+rm -f config.env.bak
 
 # Step 2: Get Access Token
 echo "Fetching access token..."
