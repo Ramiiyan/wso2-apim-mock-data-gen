@@ -1,1 +1,6 @@
 .DS_Store
+*.diff
+
+# config.env contains generated OAuth credentials — never commit
+# Copy config.env.template to config.env and fill in your values
+config.env

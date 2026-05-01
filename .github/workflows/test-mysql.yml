@@ -1,85 +1,34 @@
-name: Test mysql
+name: Test MySQL Setup
 
+# Triggers only when this workflow file itself is changed.
+# Used to verify MySQL initialisation works correctly on ubuntu-latest.
 on:
   push:
     paths:
       - '.github/workflows/test-mysql.yml'
 
 jobs:
-  setup-wso2-environment:
+  test-mysql-setup:
     runs-on: ubuntu-latest
-    env:
-      PRODUCT_PACK_NAME : wso2am-3.2.0
-    
+
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Install Common Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y curl jq
-    
-    - name: Test MySQL1
-      run: |
-        # Install MySQL
-        sudo apt-get install -y mysql-server
-        sudo systemctl start mysql.service
-        sudo systemctl status mysql
-        mysql --version
-      continue-on-error: true
+      - name: Start MySQL service
+        run: sudo /etc/init.d/mysql start
 
-    - name: Set up MySQL
-      run: |
-        sudo /etc/init.d/mysql start
-        mysql -e 'CREATE DATABASE test_db;' -uroot -proot
-        mysql -uroot -proot << EOF
-        CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
-        CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
-        CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
-        GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
-        GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
-        FLUSH PRIVILEGES;
-        EOF
-        mysql -uroot -proot -e "SHOW DATABASES;"
-      continue-on-error: true
+      - name: Create WSO2 databases and user
+        run: |
+          sudo mysql -uroot -proot << EOF
+          CREATE DATABASE IF NOT EXISTS WSO2_APIM_DB CHARACTER SET latin1;
+          CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
+          CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
+          GRANT ALL PRIVILEGES ON WSO2_APIM_DB.* TO 'wso2carbon'@'localhost';
+          GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
+          FLUSH PRIVILEGES;
+          EOF
 
-    - name: Test MySQL4
-      run: |
-        sudo mysql --version
-        sudo mysql -u root --password=root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rootpassword';"
-        sudo mysql -u root --password=root -e "FLUSH PRIVILEGES;"
-      continue-on-error: true
-    - name: Check MySQL Access
-      run: sudo mysql -u root --password=root -e "SHOW DATABASES;"
-      continue-on-error: true
-    
-    - name: Check MySQL User Authentication
-      run: sudo mysql -u root --password=root -e "SELECT user, host, plugin FROM mysql.user;"
-      continue-on-error: true
-
-    - name: Create MySQL User
-      run: |
-        sudo mysql -u root -e "CREATE USER 'github'@'localhost' IDENTIFIED BY 'githubpass';"
-        sudo mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'github'@'localhost' WITH GRANT OPTION;"
-        sudo mysql -u root -e "FLUSH PRIVILEGES;"
-      continue-on-error: true
-
-    - name: Test MySQL6
-      run: |
-        mysql --version
-        mysql -u root --password=root -e "SHOW DATABASES;"
-    
-        
-        # Create WSO2 databases and user
-        sudo mysql -uroot --password=root << EOF
-        CREATE DATABASE IF NOT EXISTS WSO2AM_DB CHARACTER SET latin1;
-        CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
-        EOF
-        # CREATE USER IF NOT EXISTS 'wso2carbon'@'localhost' IDENTIFIED BY 'wso2carbon';
-        # GRANT ALL PRIVILEGES ON WSO2AM_DB.* TO 'wso2carbon'@'localhost';
-        # GRANT ALL PRIVILEGES ON WSO2_SHARED_DB.* TO 'wso2carbon'@'localhost';
-        # FLUSH PRIVILEGES;
-        # EOF
-        
-        # Verify MySQL Setup
-        mysql -uroot -proot -e "SHOW DATABASES;"
+      - name: Verify databases and user exist
+        run: |
+          mysql -uwso2carbon -pwso2carbon -e "SHOW DATABASES;"
+          mysql -uroot -proot -e "SELECT user, host FROM mysql.user WHERE user='wso2carbon';"

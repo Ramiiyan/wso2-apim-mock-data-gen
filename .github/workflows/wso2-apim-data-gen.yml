@@ -56,7 +56,7 @@ jobs:
     outputs:
       PRODUCT_PACK_NAME: ${{ steps.extract_version.outputs.PRODUCT_PACK_NAME }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
     - name: Extract APIM Version from Branch Name
       id: extract_version
@@ -99,11 +99,12 @@ jobs:
         unzip ${{ env.PRODUCT_PACK_NAME }}.zip
     
     - name: Get DB connector
+      if: github.event.inputs.host == 'localhost'
       run: |
         # Download MYSQL Connector
         wget https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-8.0.32.zip
 
-         # Extract the package
+        # Extract the package
         unzip mysql-connector-j-8.0.32.zip
         
 
@@ -111,22 +112,29 @@ jobs:
       if: ${{ github.event.inputs.subscription == 'true' }} 
       run: |
         # Update WSO2 API Manager using U2 tool (Only for subscribers)
+        # Exit code 2 means "already up to date" — treat it as success
         export WSO2_UPDATES_SKIP_CONFLICTS="true"
-        echo "=========== Updating the U2 Update tool ==========="
-        ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
-        
+        U2_BIN="./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux"
+        U2_CREDS="-u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }}"
+
+        echo "=========== Updating the U2 tool itself ==========="
+        $U2_BIN $U2_CREDS; RC=$?; [[ $RC -eq 0 || $RC -eq 2 ]] || exit $RC
+
+        echo "=========== Updating the APIM pack ==========="
         if [[ -n "${{ github.event.inputs.U2_lvl }}" ]]; then
-            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} -l ${{ github.event.inputs.U2_lvl }} || [[ $? -eq 2 ]]
+            $U2_BIN $U2_CREDS -l ${{ github.event.inputs.U2_lvl }}; RC=$?; [[ $RC -eq 0 || $RC -eq 2 ]] || exit $RC
         else
-            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
+            $U2_BIN $U2_CREDS; RC=$?; [[ $RC -eq 0 || $RC -eq 2 ]] || exit $RC
         fi
 
     - name: Setup MySQL (if localhost)
       if: github.event.inputs.host == 'localhost'
       run: |
-        # Initiate MySQL
+        # Start MySQL and enable password auth for root
+        # (ubuntu-latest uses socket auth by default — set a password so later steps can use -proot)
         sudo /etc/init.d/mysql start
-        
+        sudo mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root'; FLUSH PRIVILEGES;"
+
         # Create WSO2 databases and user
         mysql -uroot -proot << EOF
         CREATE DATABASE IF NOT EXISTS WSO2_APIM_DB CHARACTER SET latin1;
@@ -192,7 +200,7 @@ jobs:
         GATEWAY_PORT="8243"
         BASIC_AUTH=\$(printf "%s" "\$ADMIN_USERNAME:\$ADMIN_PASSWORD" | base64)
         PUBLISHER_SCOPE="apim:api_create apim:api_view apim:api_publish apim:api_import_export"
-        SUBSCRIBER_SCOPE="apim:subscribe apim:api_key apim:app_manage apim:sub_manage apim:store_settings apim:sub_alert_manage apim:app_import_export"
+        SUBSCRIBER_SCOPE="apim:api_view apim:subscribe apim:api_key apim:app_manage apim:sub_manage apim:store_settings apim:sub_alert_manage apim:app_import_export"
         NUM_APPS="${{ github.event.inputs.num_apps }}"
         KEY_MANAGER_ID="Resident Key Manager"
         EOF
@@ -232,18 +240,20 @@ jobs:
 
     - name: List APIs(Test Run)
       run: |
-        curl -k "https://${{ github.event.inputs.host }}:9443/api/am/store/v1/apis"
+        curl -k "https://${{ github.event.inputs.host }}:9443/api/am/devportal/v3/apis"
       continue-on-error: true
 
     - name: Create and Zip MySQL Database Dumps
+      if: github.event.inputs.host == 'localhost'
       run: |
         # Create a backup folder
         DIR_NAME="mysql_dumps-$PRODUCT_PACK_NAME-$(date +'%Y-%m-%d-%H-%M-%S')"
         mkdir -p "$DIR_NAME"
         
         # Dump each database into a separate file
-        mysqldump -u root -proot WSO2_APIM_DB > "$DIR_NAME"/WSO2_APIM_DB.sql
-        mysqldump -u root -proot WSO2_SHARED_DB > "$DIR_NAME"/WSO2_SHARED_DB.sql
+        # (root password was set to 'root' in the Setup MySQL step)
+        mysqldump -uroot -proot WSO2_APIM_DB > "$DIR_NAME"/WSO2_APIM_DB.sql
+        mysqldump -uroot -proot WSO2_SHARED_DB > "$DIR_NAME"/WSO2_SHARED_DB.sql
     
         # Zip the dumps folder
         zip -r "$DIR_NAME.zip" "$DIR_NAME"
