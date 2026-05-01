@@ -130,10 +130,8 @@ jobs:
     - name: Setup MySQL (if localhost)
       if: github.event.inputs.host == 'localhost'
       run: |
-        # Start MySQL and enable password auth for root
-        # (ubuntu-latest uses socket auth by default — set a password so later steps can use -proot)
+        # Initiate MySQL
         sudo /etc/init.d/mysql start
-        sudo mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root'; FLUSH PRIVILEGES;"
 
         # Create WSO2 databases and user
         mysql -uroot -proot << EOF
