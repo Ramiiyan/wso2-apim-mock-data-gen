@@ -1,21 +1,25 @@
 name: WSO2 APIM Dummy Data Generator
 
+# ================================================================
+# Multi-version workflow for the main branch.
+# Select the APIM version via the dropdown — the workflow will
+# automatically fetch the correct version-specific scripts from
+# the corresponding wso2am-X.Y.Z branch.
+# ================================================================
+
 on:
   workflow_dispatch:
     inputs:
-      # apim_version:
-      #   description: 'WSO2 APIM Version'
-      #   type: choice
-      #   options:
-      #     - '3.2.0'
-      #     - '4.0.0'
-      #     - '4.1.0'
-      #     - '4.2.0'
-      #     - '4.3.0'
-      #     - '4.4.0'
-      #     - '4.5.0'
-      #   required: true
-      #   default: '3.2.0'
+      apim_version:
+        description: 'WSO2 APIM Version'
+        type: choice
+        options:
+          - '4.5.0'
+          - '4.1.0'
+          - '4.0.0'
+          - '3.2.0'
+        required: true
+        default: '4.5.0'
       host:
         description: 'WSO2 APIM Host'
         required: true
@@ -32,19 +36,11 @@ on:
         description: 'Number of Test Applications'
         required: true
         default: '15'
-      # mysql_root_password:
-      #   description: 'MySQL Root Password'
-      #   required: false
-      #   default: 'root'
-      # mysql_version:
-      #   description: 'MySQL Version'
-      #   required: false
-      #   default: '5.8'
       subscription:
         description: 'WSO2 APIM Subscriber?'
         required: false
         default: false
-        type: boolean  # Boolean input type
+        type: boolean
       U2_lvl:
         description: 'U2 Update Level'
         type: number
@@ -53,81 +49,121 @@ on:
 jobs:
   build-wso2-data:
     runs-on: ubuntu-latest
-    env:
-      PRODUCT_PACK_NAME : wso2am-${{ github.event.inputs.apim_version }}
-    
+    outputs:
+      PRODUCT_PACK_NAME: ${{ steps.set_version.outputs.PRODUCT_PACK_NAME }}
     steps:
-    - uses: actions/checkout@v2
-    
-    - name: Extract APIM Version from Branch Name
-      id: extract_version
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Needed to fetch other branches for version-specific scripts
+
+    - name: Set version variables
+      id: set_version
       run: |
-        # Remove 'refs/heads/' prefix if present
-        BRANCH_NAME="${{ github.ref_name }}"
-        echo "Branch Name: $BRANCH_NAME"
-        # Extract version using regex pattern
-        if [[ $BRANCH_NAME =~ ^(wso2am-)?([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-          VERSION="${BASH_REMATCH[2]}"
-          echo "Version extracted: $VERSION"
-          echo "apim_version=$VERSION" >> $GITHUB_OUTPUT
-        else
-          echo "Error: Could not extract version from branch name $BRANCH_NAME"
-          echo "Branch name should be in format 'wso2am-X.Y.Z' or 'X.Y.Z'"
-          exit 1
-        fi
-    
+        echo "apim_version=${{ github.event.inputs.apim_version }}" >> $GITHUB_ENV
+        echo "PRODUCT_PACK_NAME=wso2am-${{ github.event.inputs.apim_version }}" >> $GITHUB_ENV
+        echo "PRODUCT_PACK_NAME=wso2am-${{ github.event.inputs.apim_version }}" >> $GITHUB_OUTPUT
+        echo "Version: ${{ github.event.inputs.apim_version }}"
+        echo "Pack: wso2am-${{ github.event.inputs.apim_version }}"
+
+    - name: Checkout version-specific scripts from wso2am-${{ github.event.inputs.apim_version }}
+      run: |
+        # Pull the correct API endpoint scripts from the version branch
+        # so we always use the right publisher/devportal API versions
+        git fetch origin wso2am-${{ github.event.inputs.apim_version }}
+        git checkout origin/wso2am-${{ github.event.inputs.apim_version }} -- \
+          api_creator.sh \
+          api_publisher.sh \
+          devportal_app_creator.sh \
+          app_keys_gen.sh \
+          subscribe_APIs.sh
+        echo "Scripts checked out from wso2am-${{ github.event.inputs.apim_version }}"
+
     - name: Install Common Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y curl jq
-        echo "wso2 apim_version : ${{ env.apim_version }}"
+        sudo apt-get install -y curl jq unzip maven
 
-    # Use the setup-java action to configure the Java environment
-    - name: 'Set up JDK 8'
+    - name: Set up JDK (8 for APIM 3.x, 11 for APIM 4.x)
       uses: actions/setup-java@v4
       with:
-        java-version: '8'
+        java-version: ${{ startsWith(github.event.inputs.apim_version, '3.') && '8' || '11' }}
         distribution: 'temurin'
-    
-    - name: Get APIM Pack (if localhost)
+
+    - name: Cache Maven packages (for 4.1.0 source build)
+      if: ${{ github.event.inputs.host == 'localhost' && github.event.inputs.apim_version == '4.1.0' }}
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-wso2-${{ hashFiles('product-apim-*/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-wso2-
+
+    - name: Build APIM from Source (4.1.0 only)
+      if: ${{ github.event.inputs.host == 'localhost' && github.event.inputs.apim_version == '4.1.0' }}
+      run: |
+        echo "Downloading WSO2 APIM source v4.1.0..."
+        wget -q https://github.com/wso2/product-apim/archive/refs/tags/v4.1.0.zip -O product-apim-v4.1.0.zip
+        unzip product-apim-v4.1.0.zip
+
+        SRC_DIR=$(ls -d product-apim-* 2>/dev/null | head -n1)
+        echo "Source dir: $SRC_DIR"
+        if [ -z "$SRC_DIR" ]; then
+          echo "Could not find extracted source directory"
+          exit 1
+        fi
+
+        cd "$SRC_DIR"
+        mkdir -p ~/.m2
+        echo "Building product with Maven (skipping tests)..."
+        mvn clean install -Dmaven.test.skip=true
+
+        PRODUCT_ZIP_PATH="$(pwd)/modules/distribution/product/target/wso2am-4.1.0.zip"
+        if [ -f "$PRODUCT_ZIP_PATH" ]; then
+          cp "$PRODUCT_ZIP_PATH" ..
+          mv "../wso2am-4.1.0.zip" "../${{ env.PRODUCT_PACK_NAME }}.zip"
+          unzip "../${{ env.PRODUCT_PACK_NAME }}.zip" -d ..
+          echo "Build complete"
+        else
+          echo "Error: built product not found at $PRODUCT_ZIP_PATH"
+          exit 1
+        fi
+        cd ..
+
+    - name: Get APIM Pack (if localhost, not 4.1.0)
+      if: ${{ github.event.inputs.host == 'localhost' && github.event.inputs.apim_version != '4.1.0' }}
+      run: |
+        wget -q https://github.com/wso2/product-apim/releases/download/v${{ env.apim_version }}/${{ env.PRODUCT_PACK_NAME }}.zip
+        unzip ${{ env.PRODUCT_PACK_NAME }}.zip
+
+    - name: Get DB connector
       if: github.event.inputs.host == 'localhost'
       run: |
-        # Download WSO2 API Manager
-        wget https://github.com/wso2/product-apim/releases/download/v${{ github.event.inputs.apim_version }}/wso2am-${{ github.event.inputs.apim_version }}.zip
-        
-        # Extract the package
-        unzip ${{ env.PRODUCT_PACK_NAME }}.zip
-    
-    - name: Get DB connector
-      run: |
-        # Download MYSQL Connector
-        wget https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-8.0.32.zip
-
-         # Extract the package
+        wget -q https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-8.0.32.zip
         unzip mysql-connector-j-8.0.32.zip
-        
 
-    - name: update APIM pack using U2(if subscription available)
-      if: ${{ github.event.inputs.subscription == 'true' }} 
+    - name: Update APIM pack using U2 (if subscription available)
+      if: ${{ github.event.inputs.subscription == 'true' }}
       run: |
-        # Update WSO2 API Manager using U2 tool (Only for subscribers)
+        # Exit code 2 means "already up to date" — treat as success
         export WSO2_UPDATES_SKIP_CONFLICTS="true"
-        echo "=========== Updating the U2 Update tool ==========="
-        ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
-        
+        U2_BIN="./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux"
+        U2_CREDS="-u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }}"
+
+        echo "=========== Updating the U2 tool itself ==========="
+        $U2_BIN $U2_CREDS; RC=$?; [[ $RC -eq 0 || $RC -eq 2 ]] || exit $RC
+
+        echo "=========== Updating the APIM pack ==========="
         if [[ -n "${{ github.event.inputs.U2_lvl }}" ]]; then
-            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} -l ${{ github.event.inputs.U2_lvl }} || [[ $? -eq 2 ]]
+            $U2_BIN $U2_CREDS -l ${{ github.event.inputs.U2_lvl }}; RC=$?; [[ $RC -eq 0 || $RC -eq 2 ]] || exit $RC
         else
-            ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2update_linux -u ${{ secrets.WSO2_USERNAME }} --password ${{ secrets.WSO2_PASSWORD }} || [[ $? -eq 2 ]]
+            $U2_BIN $U2_CREDS; RC=$?; [[ $RC -eq 0 || $RC -eq 2 ]] || exit $RC
         fi
 
     - name: Setup MySQL (if localhost)
       if: github.event.inputs.host == 'localhost'
       run: |
-        # Initiate MySQL
         sudo /etc/init.d/mysql start
-        
-        # Create WSO2 databases and user
+
         mysql -uroot -proot << EOF
         CREATE DATABASE IF NOT EXISTS WSO2_APIM_DB CHARACTER SET latin1;
         CREATE DATABASE IF NOT EXISTS WSO2_SHARED_DB CHARACTER SET latin1;
@@ -137,50 +173,41 @@ jobs:
         FLUSH PRIVILEGES;
         EOF
 
-        # Verify MySQL Setup
         mysql -uroot -proot -e "SHOW DATABASES;"
 
-        # Run SQL scripts
         echo "Running SQL scripts..."
         mysql -uwso2carbon -pwso2carbon WSO2_APIM_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/apimgt/mysql.sql
         mysql -uwso2carbon -pwso2carbon WSO2_SHARED_DB < ./${{ env.PRODUCT_PACK_NAME }}/dbscripts/mysql.sql
-
         echo "SQL scripts executed successfully."
 
-        # List tables in databases
         echo "Tables in WSO2_APIM_DB:"
         mysql -uwso2carbon -pwso2carbon -e "USE WSO2_APIM_DB; SHOW TABLES;"
         echo "Tables in WSO2_SHARED_DB:"
         mysql -uwso2carbon -pwso2carbon -e "USE WSO2_SHARED_DB; SHOW TABLES;"
 
-        echo "Tables listed successfully."
-
     - name: Change the DB config (if localhost)
       if: github.event.inputs.host == 'localhost'
       run: |
-        # adding the DB connector
         cp ./mysql-connector-j-8.0.32/mysql-connector-j-8.0.32.jar ./${{ env.PRODUCT_PACK_NAME }}/repository/components/lib/
-        
-        # Backup deployment.toml
         mv ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/deployment.toml.bak
-        echo "Backup created: deployment.toml.bak"
-
-        # Update deployment.toml with repo file.
         cp ./deployment.toml ./${{ env.PRODUCT_PACK_NAME }}/repository/conf/
-       
-    - name: Start up the Server(if localhost)
+        echo "deployment.toml updated"
+
+    - name: Start up the Server (if localhost)
       if: github.event.inputs.host == 'localhost'
       run: |
-        # Start WSO2 API Manager in background
-        ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2server.sh start
-        
-        # Wait for server to start (typically takes a few minutes)
+        # Use api-manager.sh for 4.x, wso2server.sh for 3.x
+        if [ -f "./${{ env.PRODUCT_PACK_NAME }}/bin/api-manager.sh" ]; then
+          ./${{ env.PRODUCT_PACK_NAME }}/bin/api-manager.sh start
+        else
+          ./${{ env.PRODUCT_PACK_NAME }}/bin/wso2server.sh start
+        fi
+
         echo "Waiting for WSO2 API Manager to start..."
         while ! curl -k -s -f https://localhost:9443/carbon > /dev/null; do
           sleep 60
         done
         echo "WSO2 API Manager is running"
-        cd ../..
 
     - name: Create config.env
       run: |
@@ -192,60 +219,40 @@ jobs:
         GATEWAY_PORT="8243"
         BASIC_AUTH=\$(printf "%s" "\$ADMIN_USERNAME:\$ADMIN_PASSWORD" | base64)
         PUBLISHER_SCOPE="apim:api_create apim:api_view apim:api_publish apim:api_import_export"
-        SUBSCRIBER_SCOPE="apim:subscribe apim:api_key apim:app_manage apim:sub_manage apim:store_settings apim:sub_alert_manage apim:app_import_export"
+        SUBSCRIBER_SCOPE="apim:api_view apim:subscribe apim:api_key apim:app_manage apim:sub_manage apim:store_settings apim:sub_alert_manage apim:app_import_export"
         NUM_APPS="${{ github.event.inputs.num_apps }}"
         KEY_MANAGER_ID="Resident Key Manager"
         EOF
 
     - name: Make scripts executable
-      run: |
-        chmod +x api_creator.sh
-        chmod +x api_publisher.sh
-        chmod +x devportal_app_creator.sh
-        chmod +x app_keys_gen.sh
-        chmod +x subscribe_APIs.sh
+      run: chmod +x api_creator.sh api_publisher.sh devportal_app_creator.sh app_keys_gen.sh subscribe_APIs.sh
 
     - name: Create APIs
-      run: |
-        ./api_creator.sh
-      continue-on-error: false
+      run: ./api_creator.sh
 
     - name: Publish APIs
-      run: |
-        ./api_publisher.sh
-      continue-on-error: false
+      run: ./api_publisher.sh
 
     - name: Create DevPortal Applications
-      run: |
-        ./devportal_app_creator.sh
-      continue-on-error: false
+      run: ./devportal_app_creator.sh
 
     - name: Generate Application Keys
-      run: |
-        ./app_keys_gen.sh
-      continue-on-error: false
+      run: ./app_keys_gen.sh
 
     - name: Subscribe Applications to APIs
-      run: |
-        ./subscribe_APIs.sh
-      continue-on-error: false
+      run: ./subscribe_APIs.sh
 
-    - name: List APIs(Test Run)
-      run: |
-        curl -k "https://${{ github.event.inputs.host }}:9443/api/am/store/v1/apis"
+    - name: List APIs (Test Run)
+      run: curl -k "https://${{ github.event.inputs.host }}:9443/api/am/devportal/v3/apis"
       continue-on-error: true
 
     - name: Create and Zip MySQL Database Dumps
+      if: github.event.inputs.host == 'localhost'
       run: |
-        # Create a backup folder
         DIR_NAME="mysql_dumps-$PRODUCT_PACK_NAME-$(date +'%Y-%m-%d-%H-%M-%S')"
         mkdir -p "$DIR_NAME"
-        
-        # Dump each database into a separate file
-        mysqldump -u root -proot WSO2_APIM_DB > "$DIR_NAME"/WSO2_APIM_DB.sql
-        mysqldump -u root -proot WSO2_SHARED_DB > "$DIR_NAME"/WSO2_SHARED_DB.sql
-    
-        # Zip the dumps folder
+        mysqldump -uroot -proot WSO2_APIM_DB > "$DIR_NAME"/WSO2_APIM_DB.sql
+        mysqldump -uroot -proot WSO2_SHARED_DB > "$DIR_NAME"/WSO2_SHARED_DB.sql
         zip -r "$DIR_NAME.zip" "$DIR_NAME"
         echo "DIR_NAME=$DIR_NAME" >> $GITHUB_ENV
 
@@ -256,12 +263,12 @@ jobs:
         path: ${{ env.DIR_NAME }}.zip
 
   release:
-    needs: build-wso2-data  # Ensure artifacts are built before releasing
+    needs: build-wso2-data
     uses: ./.github/workflows/github-release.yml
     with:
-      git_org: "Ramiiyan"
-      repository: "wso2-apim-mock-data-gen"
+      git_org: "${{ github.repository_owner }}"
+      repository: "${{ github.event.repository.name }}"
       artifact_name: "mysql-database-dumps"
-      product: wso2am-${{ github.event.inputs.apim_version }}
+      product: ${{ needs.build-wso2-data.outputs.PRODUCT_PACK_NAME }}
     secrets:
       GIT_ACTION_PAT: ${{ secrets.GIT_ACTION_PAT }}
